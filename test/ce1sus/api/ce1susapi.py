@@ -47,7 +47,7 @@ class Test(unittest.TestCase):
     obj.parent = None
     obj.children = list()
 
-    event.objects.append(obj)
+
 
     # object Attributes
     attribute = RestAttribute()
@@ -73,7 +73,7 @@ class Test(unittest.TestCase):
     child.parent = None
     child.children = list()
 
-    obj.children.append(child)
+
 
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
@@ -83,13 +83,16 @@ class Test(unittest.TestCase):
     attribute.definition.classIndex = 0
     attribute.definition.handlerIndex = 9
     attribute.definition.chksum = 'c6dc0d16ffed78c3b7a120e0d8d02877e9acf570'
-    attribute.value = 'MaliciousTest.exe'
+    attribute.value = 'This is a description!'
     attribute.ioc = 0
+
+    obj.children.append(child)
+    event.objects.append(obj)
 
     child.attributes.append(attribute)
 
     return event
-
+  """
   def test_A_noconnection(self):
     try:
       api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
@@ -144,7 +147,7 @@ class Test(unittest.TestCase):
       assert False
     except Ce1susAPIException:
       assert False
-  """
+
   def test_C2_Authorized_insert(self):
 
     try:
@@ -156,20 +159,29 @@ class Test(unittest.TestCase):
       print e
       assert False
 
-  def test_C2_Authorized_Get(self):
+  def test_C2b_Authorized_Get(self):
     try:
       returnEvent = self.api.getEventByUUID(Test.UUID, True)
       event = Test.__generateEvent()
       # is as expected?
-
       assert (compareObjects(event, returnEvent))
     except Ce1susNothingFoundException:
       assert False
     except Ce1susAPIException as e:
       print e
       assert False
-
   """
+  def test_C3_Authorized_Insert_SpecialChars(self):
+    try:
+     event = Test.__generateEvent()
+     event.title = 'TitleWithSpecialChar' + u'\u2019'
+     event.uuid = None
+     returnEvent = self.api.insertEvent(event, True)
+     returnEvent.uuid = None
+     assert (compareObjects(event, returnEvent))
+    except Ce1susAPIException as e:
+      print e
+      assert False
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
