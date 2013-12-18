@@ -41,7 +41,7 @@ def __populateAtomicValue(instance, key, value, makeBinary=True):
           and ('{' in stringValue and '}' in stringValue)
           and 'file' in stringValue):
         # decompress file
-      dictionary = json.load(value)
+      dictionary = json.loads(value)
       jsonFile = dictionary.get('file', None)
       if jsonFile:
         fileName = jsonFile[0]
