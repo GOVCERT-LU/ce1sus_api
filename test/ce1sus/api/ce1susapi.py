@@ -1,8 +1,16 @@
-'''
-Created on Oct 29, 2013
+# -*- coding: utf-8 -*-
 
-@author: jhemp
-'''
+"""
+(Description)
+
+Created on Oct 29, 2013
+"""
+
+__author__ = 'Weber Jean-Paul'
+__email__ = 'jean-paul.weber@govcert.etat.lu'
+__copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
+__license__ = 'GPL v3+'
+
 import unittest
 from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException, Ce1susUndefinedParameter
 from ce1sus.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
@@ -12,14 +20,14 @@ from dagr.helpers.string import stringToDateTime
 
 
 # pylint:disable=R0904
-class Test(unittest.TestCase):
+class TestAPI(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = '9baddd88cabaf31e0a59b3c34018f84c5ca69eda'
+  APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
   UUID = '43ecf6c4-d25b-4862-9b63-4bc17125fc70'
 
   def setUp(self):
-    self.api = Ce1susAPI(Test.URL, Test.APIKEY)
+    self.api = Ce1susAPI(TestAPI.URL, TestAPI.APIKEY)
 
   @staticmethod
   def __generateEvent():
@@ -35,7 +43,7 @@ class Test(unittest.TestCase):
     event.comments = list()
     event.published = 1
     event.status = 'Deleted'
-    event.uuid = Test.UUID
+    event.uuid = TestAPI.UUID
 
     # attach some objects
     obj = RestObject()
@@ -92,11 +100,11 @@ class Test(unittest.TestCase):
     child.attributes.append(attribute)
 
     return event
-  """
+
   def test_A_noconnection(self):
     try:
       api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
-      api.getEventByUUID(Test.UUID)
+      api.getEventByUUID(TestAPI.UUID)
       assert False
     except Ce1susAPIConnectionException:
       assert True
@@ -105,8 +113,8 @@ class Test(unittest.TestCase):
 
   def test_B_Unauthorized_Get(self):
     try:
-      api = Ce1susAPI(Test.URL, 'SomeKey2')
-      api.getEventByUUID(Test.UUID)
+      api = Ce1susAPI(TestAPI.URL, 'SomeKey2')
+      api.getEventByUUID(TestAPI.UUID)
       assert False
     except Ce1susForbiddenException:
       assert True
@@ -115,8 +123,8 @@ class Test(unittest.TestCase):
 
   def test_B_Unauthorized_insert(self):
     try:
-      api = Ce1susAPI(Test.URL, 'SomeKey')
-      event = Test.__generateEvent()
+      api = Ce1susAPI(TestAPI.URL, 'SomeKey')
+      event = TestAPI.__generateEvent()
       api.insertEvent(event)
       assert False
     except Ce1susForbiddenException:
@@ -151,8 +159,7 @@ class Test(unittest.TestCase):
   def test_C2_Authorized_insert(self):
 
     try:
-      event = Test.__generateEvent()
-      event.uuid = None
+      event = TestAPI.__generateEvent()
       returnEvent = self.api.insertEvent(event, True)
       assert (compareObjects(event, returnEvent))
     except Ce1susAPIException as e:
@@ -161,8 +168,8 @@ class Test(unittest.TestCase):
 
   def test_C2b_Authorized_Get(self):
     try:
-      returnEvent = self.api.getEventByUUID(Test.UUID, True)
-      event = Test.__generateEvent()
+      returnEvent = self.api.getEventByUUID(TestAPI.UUID, True)
+      event = TestAPI.__generateEvent()
       # is as expected?
       assert (compareObjects(event, returnEvent))
     except Ce1susNothingFoundException:
@@ -170,10 +177,10 @@ class Test(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-  """
+
   def test_C3_Authorized_Insert_SpecialChars(self):
     try:
-     event = Test.__generateEvent()
+     event = TestAPI.__generateEvent()
      event.title = 'TitleWithSpecialChar' + u'\u2019'
      event.uuid = None
      returnEvent = self.api.insertEvent(event, True)
