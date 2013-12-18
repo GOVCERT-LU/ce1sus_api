@@ -181,6 +181,8 @@ class RestEvent(RestClass):
                                                               self.description)
     result[self.__class__.__name__]['first_seen'] = '{0}'.format(
                                                               self.first_seen.isoformat())
+    if self.last_seen is None:
+      self.last_seen = self.first_seen
     result[self.__class__.__name__]['last_seen'] = '{0}'.format(self.last_seen.isoformat())
     if self.tlp is None:
       tlp = None
