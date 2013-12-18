@@ -19,7 +19,7 @@ from os.path import basename
 from importlib import import_module
 from types import DictionaryType, ListType
 from dagr.helpers.string import stringToDateTime, InputException
-
+import json
 
 def __instantiateClass(className):
   module = import_module('.restclasses', 'ce1sus.api')
@@ -41,7 +41,7 @@ def __populateAtomicValue(instance, key, value, makeBinary=True):
           and ('{' in stringValue and '}' in stringValue)
           and 'file' in stringValue):
         # decompress file
-      dictionary = eval(value)
+      dictionary = json.load(value)
       jsonFile = dictionary.get('file', None)
       if jsonFile:
         fileName = jsonFile[0]
