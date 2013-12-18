@@ -56,10 +56,12 @@ class Ce1susAPIConnectionException(Ce1susAPIException):
 
 class Ce1susAPI(object):
 
-  def __init__(self, apiUrl, apiKey, proxies=dict()):
+  def __init__(self, apiUrl, apiKey, proxies=dict(), verify_ssl=True, ssl_cert=None):
     self.apiUrl = apiUrl
     self.apiKey = apiKey
     self.proxies = proxies
+    self.verify_ssl = verify_ssl
+    self.ssl_cert = ssl_cert
 
   @staticmethod
   def raiseException(errorMessage):
@@ -92,9 +94,15 @@ class Ce1susAPI(object):
         request = requests.post(url,
                                data=json.dumps(data),
                                headers=headers,
-                               proxies=self.proxies)
+                               proxies=self.proxies,
+                               verify=self.verify_ssl,
+                               cert=self.ssl_cert)
       else:
-        request = requests.get(url, headers=headers, proxies=self.proxies)
+        request = requests.get(url,
+                               headers=headers,
+                               proxies=self.proxies,
+                               verify=self.verify_ssl,
+                               cert=self.ssl_cert)
       if request.status_code == requests.codes.ok:
         response = request.text
       else:
@@ -107,7 +115,7 @@ class Ce1susAPI(object):
             raise Ce1susAPIException('Server Error'.format(e.message))
           raise Ce1susAPIException('Error ({0})'.format(e))
     except requests.ConnectionError as e:
-      raise Ce1susAPIConnectionException('{0}'.format(e.message.strerror))
+      raise Ce1susAPIConnectionException('{0}'.format(e.message))
 
     # Process custom exceptions
 
