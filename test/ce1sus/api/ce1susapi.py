@@ -22,7 +22,7 @@ from dagr.helpers.string import stringToDateTime
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  URL = 'http://localhost:8080/REST/0.2.0'
+  URL = 'http://ce1sus-dev.int.govcert.etat.lu:8080/REST/0.2.0'
   APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
   UUID = '43ecf6c4-d25b-4862-9b63-4bc17125fc70'
 
