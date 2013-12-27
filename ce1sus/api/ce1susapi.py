@@ -9,10 +9,9 @@ __license__ = 'GPL v3+'
 
 import json
 import requests
-from types import DictionaryType, ListType
-from importlib import import_module
-from ce1sus.api.restclasses import RestClass, RestAPIException, getObjectData, populateClassNamebyDict, mapResponseToObject, getData, mapJSONToObject
-import os
+from ce1sus.api.restclasses import RestClass, populateClassNamebyDict, \
+                                   mapResponseToObject, getData, \
+                                   mapJSONToObject
 
 
 def json_pretty_print(j):
@@ -24,39 +23,51 @@ class Ce1susAPIException(Exception):
   def __init__(self, message):
     Exception.__init__(self, message)
 
+
 class Ce1susForbiddenException(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
+
 
 class Ce1susNothingFoundException(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
 
+
 class Ce1susUndefinedException(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
+
 
 class Ce1susUndefinedParameter(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
 
+
 class NothingFoundException(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
+
 
 class Ce1susAPIConnectionException(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
 
+
 class Ce1susAPI(object):
 
-  def __init__(self, apiUrl, apiKey, proxies=dict(), verify_ssl=True, ssl_cert=None):
+  def __init__(self,
+               apiUrl,
+               apiKey,
+               proxies=dict(),
+               verify_ssl=False,
+               ssl_cert=False):
     self.apiUrl = apiUrl
     self.apiKey = apiKey
     self.proxies = proxies
@@ -78,8 +89,6 @@ class Ce1susAPI(object):
         raise Ce1susUndefinedException(errorMessage)
     else:
       raise Ce1susAPIException(errorMessage)
-
-
 
   def __request(self, method, data=None, extra_headers=None):
     try:
@@ -116,21 +125,18 @@ class Ce1susAPI(object):
           raise Ce1susAPIException('Error ({0})'.format(e))
     except requests.ConnectionError as e:
       raise Ce1susAPIConnectionException('{0}'.format(e.message))
-
     # Process custom exceptions
-
     jsonObj = json.loads(response)
-    for item in jsonObj:
-      resonseObj = jsonObj.get('response', None)
-      if resonseObj :
-        if resonseObj.get('status', 'ERROR') == 'ERROR':
-          errorMsg = '';
-          for error in resonseObj.get('errors', list()):
-            for value in error.itervalues():
-              errorMsg += value + '.'
-          Ce1susAPI.raiseException(errorMsg)
-        else:
-          return jsonObj
+    resonseObj = jsonObj.get('response', None)
+    if resonseObj:
+      if resonseObj.get('status', 'ERROR') == 'ERROR':
+        errorMsg = ''
+        for error in resonseObj.get('errors', list()):
+          for value in error.itervalues():
+            errorMsg += value + '.'
+        Ce1susAPI.raiseException(errorMsg)
+      else:
+        return jsonObj
     raise Ce1susAPIException('Undefined Error')
 
   def getEventByUUID(self, uuid, withDefinition=False):
@@ -167,9 +173,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': True}
     else:
       headers = {'full_definitions': False}
-
     headers['UUID'] = uuids
-
     if startDate:
       headers['startdate'] = startDate
     if endDate:
@@ -181,10 +185,10 @@ class Ce1susAPI(object):
 
     result = self.__request('/events', None, headers)
     key, values = getData(result)
+    del key
     result = list()
     for value in values:
-      jsonData = json.loads(value)
-      result.append(mapJSONToObject(jsonData))
+      result.append(mapJSONToObject(value))
     return result
 
   def searchEvents(self,
@@ -208,12 +212,11 @@ class Ce1susAPI(object):
       headers['page'] = offset
     if limit:
       headers['limit'] = limit
-
     headers['object_attributes'] = objectContainsAttribute
     headers['object_type'] = objectType
-
     result = self.__request('/search/events', None, headers)
     key, uuids = getData(result)
+    del key
     return uuids
 
   def searchAttributes(self,
@@ -229,7 +232,6 @@ class Ce1susAPI(object):
       headers = {'full_definitions': True}
     else:
       headers = {'full_definitions': False}
-
     if startDate:
       headers['startdate'] = startDate
     if endDate:
@@ -238,11 +240,9 @@ class Ce1susAPI(object):
       headers['page'] = offset
     if limit:
       headers['limit'] = limit
-
     headers['object_attributes'] = objectContainsAttribute
     headers['object_type'] = objectType
     headers['attributes'] = filterAttributes
-
     events = list()
     result = self.__request('/search/attributes', None, headers)
     key, values = getData(result)
@@ -251,19 +251,7 @@ class Ce1susAPI(object):
       for key, value in jsonObject.iteritems():
         restEvent = populateClassNamebyDict(key, value, True)
         events.append(restEvent)
-
     return events
-
-
-  def getAttributeDefinitionByChksum(self, chksum, withDefinition=False):
-    if withDefinition:
-      headers = {'full_definitions': True}
-    else:
-      headers = {'full_definitions': False}
-
-    result = self.__request('/definition/attribute/{0}'.format(chksum),
-                            None, headers)
-    return mapResponseToObject(result)
 
   def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
     if withDefinition:
@@ -272,17 +260,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/attributes'.format(uuid),
-                            None, headers)
-    return mapResponseToObject(result)
-
-  def getObjectDefinitionByChksum(self, chksum, withDefinition=False):
-    if withDefinition:
-      headers = {'full_definitions': True}
-    else:
-      headers = {'full_definitions': False}
-
-    result = self.__request('/definition/object/{0}'.format(chksum),
+    result = self.__request('/definition/attributes'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
@@ -293,7 +271,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/objects'.format(uuid),
+    result = self.__request('/definition/objects'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 

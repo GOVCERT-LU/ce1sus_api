@@ -22,13 +22,13 @@ from dagr.helpers.string import stringToDateTime
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  URL = 'http://localhost:8080/REST/0.2.0'
+  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
   APIKEY = 'a1b4aab5df9365a3f98679fe637770dc02a11fbd'
   UUID = '43ecf6c4-d25b-4862-9b63-4bc17125fc70'
 
   def setUp(self):
     self.api = Ce1susAPI(TestAPI.URL, TestAPI.APIKEY)
-  """
+
   @staticmethod
   def __generateEvent():
     event = RestEvent()
@@ -100,7 +100,7 @@ class TestAPI(unittest.TestCase):
     child.attributes.append(attribute)
 
     return event
-
+  """
   def test_A_noconnection(self):
     try:
       api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
@@ -189,13 +189,19 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-  """
+
   def test_C3_Authorized_getDefinition(self):
     try:
-
      returnDefinition = self.api.getAttributeDefinitionByChksum('6a5ed020e2f7d1ec6ca78b1ffe04142142c33078', True)
-
-     pass
+     assert True
+    except Ce1susAPIException as e:
+      print e
+      assert False
+  """
+  def test_C4_Authorized_getEvents(self):
+    try:
+     events = self.api.getEvents()
+     assert True
     except Ce1susAPIException as e:
       print e
       assert False
