@@ -255,4 +255,70 @@ class Ce1susAPI(object):
     return events
 
 
+  def getAttributeDefinitionByChksum(self, chksum, withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
 
+    result = self.__request('/definition/attribute/{0}'.format(chksum),
+                            None, headers)
+    return mapResponseToObject(result)
+
+  def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
+    headers['chksum'] = chksums
+
+    result = self.__request('/definition/attributes'.format(uuid),
+                            None, headers)
+    return mapResponseToObject(result)
+
+  def getObjectDefinitionByChksum(self, chksum, withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
+
+    result = self.__request('/definition/object/{0}'.format(chksum),
+                            None, headers)
+    return mapResponseToObject(result)
+
+  def getObjectDefinitions(self, chksums=list(), withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
+    headers['chksum'] = chksums
+
+    result = self.__request('/definition/objects'.format(uuid),
+                            None, headers)
+    return mapResponseToObject(result)
+
+  def insertAttributeDefinition(self, definition, withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
+    if isinstance(definition, RestClass):
+      data = dict(definition.toJSON(True, True))
+      result = self.__request('/definition/attribute', data, headers)
+      return mapResponseToObject(result)
+    else:
+      raise Ce1susAPIException(('Attribute definition does not implement '
+                                + 'RestClass').format(definition))
+
+  def insertObjectDefinition(self, definition, withDefinition=False):
+    if withDefinition:
+      headers = {'full_definitions': True}
+    else:
+      headers = {'full_definitions': False}
+    if isinstance(definition, RestClass):
+      data = dict(definition.toJSON(True, True))
+      result = self.__request('/definition/object', data, headers)
+      return mapResponseToObject(result)
+    else:
+      raise Ce1susAPIException(('Object definition does not implement '
+                                + 'RestClass').format(definition))

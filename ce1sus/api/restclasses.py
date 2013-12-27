@@ -170,6 +170,7 @@ class RestEvent(RestClass):
     self.published = None
     self.status = None
     self.uuid = None
+    self.share = 1
 
   def toJSON(self, full=False, withDefinition=False):
     result = dict()
@@ -209,6 +210,7 @@ class RestEvent(RestClass):
       result[self.__class__.__name__]['comments'] = list()
       for comment in self.comments:
         result[self.__class__.__name__]['comments'].append(comment.toJSON())
+    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
     return result
 
 
@@ -234,6 +236,7 @@ class RestObject(RestClass):
     self.attributes = None
     self.parent = None
     self.children = list()
+    self.share = 1
 
   def toJSON(self, full=False, withDefinition=False):
     result = dict()
@@ -259,6 +262,7 @@ class RestObject(RestClass):
                                                                        )
                                                             )
         pass
+    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
     return result
 
 
@@ -269,6 +273,7 @@ class RestAttribute(RestClass):
     self.definition = None
     self.value = None
     self.ioc = None
+    self.share = 1
 
   def toJSON(self, full=False, withDefinition=False):
     result = dict()
@@ -286,6 +291,7 @@ class RestAttribute(RestClass):
       value = self.value
     result[self.__class__.__name__]['value'] = u'{0}'.format(value)
     result[self.__class__.__name__]['ioc'] = u'{0}'.format(self.ioc)
+    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
     return result
 
 
@@ -332,10 +338,10 @@ class RestAttributeDefinition(RestClass):
   @property
   def chksum(self):
     if self.dbchksum is None:
-      key = u'{0}{1}{2}{3}'.format(attribute.name,
-                             attribute.regex,
-                             attribute.classIndex,
-                             attribute.handlerIndex)
+      key = u'{0}{1}{2}{3}'.format(self.attribute.name,
+                             self.attribute.regex,
+                             self.attribute.classIndex,
+                             self.attribute.handlerIndex)
       self.dbchksum = hashSHA1(key)
     return self.dbchksum
 
