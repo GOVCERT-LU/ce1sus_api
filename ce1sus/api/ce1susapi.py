@@ -260,7 +260,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/attributes'.format(chksums),
+    result = self.__request('/definitions/attributes'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
@@ -271,7 +271,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/objects'.format(chksums),
+    result = self.__request('/definitions/objects'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
