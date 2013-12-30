@@ -23,9 +23,9 @@ from datetime import datetime
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
-  URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = 'efa814f1e08534991fe5a3e8e4032861f6b2d69f'
+  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
+  # URL = 'http://localhost:8080/REST/0.2.0'
+  APIKEY = '646a4ed8aa4808a548835f7b4640280abfa2d289'
 
   def setUp(self):
     self.api = Ce1susAPI(TestAPI.URL, TestAPI.APIKEY)
@@ -158,7 +158,7 @@ class TestAPI(unittest.TestCase):
   def test_C1b_Authorized_Get_NotFound(self):
     try:
       # this is a valid uuid but not found
-      self.api.getEventByUUID('32016ddc-1b61-41e7-a563-2d9e27ad7986')
+      self.api.getEventByUUID('32016ddc-1b61-41e7-a563-2d9e27ad798b')
       assert False
     except Ce1susNothingFoundException:
       assert True
@@ -213,6 +213,7 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
+
   def test_C5_Authorized_getDefinitions(self):
     try:
      adefinitions = self.api.getAttributeDefinitions()
@@ -295,18 +296,7 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-  def test_C1b_Authorized_Get_NotFound(self):
-    try:
-      # this is a valid uuid but not found
-      event = self.api.getEventByUUID('cd2beada-57ed-4011-8e84-c0c51f4b8eb4')
-      assert True
-    except Ce1susNothingFoundException:
-      assert False
-    except Ce1susInvalidParameter:
-      assert False
-    except Ce1susAPIException as e:
-      print e
-      assert False
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
