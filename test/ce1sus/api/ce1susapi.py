@@ -12,18 +12,20 @@ __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 import unittest
-from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException, Ce1susUndefinedParameter
+from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException, Ce1susInvalidParameter
 from ce1sus.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
 from dagr.helpers.datumzait import datumzait
 from dagr.helpers.objects import compareObjects
 from dagr.helpers.string import stringToDateTime
+from datetime import datetime
 
 
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
-  APIKEY = 'a1b4aab5df9365a3f98679fe637770dc02a11fbd'
+  # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
+  URL = 'http://localhost:8080/REST/0.2.0'
+  APIKEY = 'efa814f1e08534991fe5a3e8e4032861f6b2d69f'
   UUID = '43ecf6c4-d25b-4862-9b63-4bc17125fc70'
 
   def setUp(self):
@@ -65,7 +67,7 @@ class TestAPI(unittest.TestCase):
     attribute.definition.regex = '^.+$'
     attribute.definition.classIndex = 1
     attribute.definition.handlerIndex = 0
-    attribute.definition.chksum = '15134f8e4624e2bb95081b8a722e0ac5cfc65360'
+    attribute.definition.chksum = '9802f41df84b79d361e9aafe62386299a77c76f8'
     attribute.value = 'MaliciousTest.exe'
     attribute.ioc = 1
 
@@ -90,7 +92,7 @@ class TestAPI(unittest.TestCase):
     attribute.definition.regex = '^.+$'
     attribute.definition.classIndex = 0
     attribute.definition.handlerIndex = 9
-    attribute.definition.chksum = 'c6dc0d16ffed78c3b7a120e0d8d02877e9acf570'
+    attribute.definition.chksum = 'b248f7d94db2e4da5188d7d8ba242f23ba733012'
     attribute.value = 'This is a description!'
     attribute.ioc = 0
 
@@ -102,16 +104,19 @@ class TestAPI(unittest.TestCase):
     return event
   """
   def test_A_noconnection(self):
+    api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
     try:
-      api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
+
       api.getEventByUUID(TestAPI.UUID)
       assert False
     except Ce1susAPIConnectionException:
       assert True
     except Ce1susAPIException:
       assert False
+    del api
 
   def test_B_Unauthorized_Get(self):
+    api = Ce1susAPI(TestAPI.URL, 'SomeKey2')
     try:
       api = Ce1susAPI(TestAPI.URL, 'SomeKey2')
       api.getEventByUUID(TestAPI.UUID)
@@ -120,40 +125,45 @@ class TestAPI(unittest.TestCase):
       assert True
     except Ce1susAPIException:
       assert False
+    del api
 
   def test_B_Unauthorized_insert(self):
+    api = Ce1susAPI(TestAPI.URL, 'SomeKey')
     try:
-      api = Ce1susAPI(TestAPI.URL, 'SomeKey')
+
       event = TestAPI.__generateEvent()
       api.insertEvent(event)
       assert False
     except Ce1susForbiddenException:
       assert True
-    except Ce1susAPIException:
+    except Ce1susAPIException as e:
+      print e
       assert False
+    del api
 
-  def test_C1_Authorized_Get(self):
+  def test_C1_Authorized_Get_InvalidUUID(self):
     try:
       # this is not a valid uuid
       self.api.getEventByUUID('Something')
       assert False
     except Ce1susNothingFoundException:
       assert False
-    except Ce1susUndefinedParameter:
+    except Ce1susInvalidParameter:
       assert True
     except Ce1susAPIException:
       assert False
 
-  def test_C1b_Authorized_Get(self):
+  def test_C1b_Authorized_Get_NotFound(self):
     try:
       # this is a valid uuid but not found
       self.api.getEventByUUID('32016ddc-1b61-41e7-a563-2d9e27ad7986 ')
       assert False
     except Ce1susNothingFoundException:
       assert True
-    except Ce1susUndefinedParameter:
+    except Ce1susInvalidParameter:
       assert False
-    except Ce1susAPIException:
+    except Ce1susAPIException as e:
+      print e
       assert False
 
   def test_C2_Authorized_insert(self):
@@ -161,6 +171,8 @@ class TestAPI(unittest.TestCase):
     try:
       event = TestAPI.__generateEvent()
       returnEvent = self.api.insertEvent(event, True)
+      uuidValue = returnEvent.uuid
+      returnEvent = self.api.getEventByUUID(uuidValue, withDefinition=True)
       assert (compareObjects(event, returnEvent))
     except Ce1susAPIException as e:
       print e
@@ -184,24 +196,80 @@ class TestAPI(unittest.TestCase):
      event.title = 'TitleWithSpecialChar' + u'\u2019'
      event.uuid = None
      returnEvent = self.api.insertEvent(event, True)
+     uuidValue = returnEvent.uuid
+     returnEvent = self.api.getEventByUUID(uuidValue, withDefinition=True)
      returnEvent.uuid = None
      assert (compareObjects(event, returnEvent))
     except Ce1susAPIException as e:
       print e
       assert False
 
-  def test_C3_Authorized_getDefinition(self):
+  def test_C4_Authorized_getEvents(self):
     try:
-     returnDefinition = self.api.getAttributeDefinitionByChksum('6a5ed020e2f7d1ec6ca78b1ffe04142142c33078', True)
-     assert True
+     events = self.api.getEvents()
+     # just checking if the number of events is as expected
+     assert len(events) == 16
     except Ce1susAPIException as e:
       print e
       assert False
   """
-  def test_C4_Authorized_getEvents(self):
+  def test_C5_Authorized_getEvents(self):
     try:
-     events = self.api.getEvents()
+      uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
+      events = self.api.getEvents(uuids=uuidlist)
+      # just checking if the number of events is as expected
+      assert len(events) == 3
+    except Ce1susAPIException as e:
+      print e
+      assert False
+  def test_C5_Authorized_getDefinitions(self):
+    try:
+     adefinitions = self.api.getAttributeDefinitions()
+     odefinitions = self.api.getObjectDefinitions()
      assert True
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C5b_Authorized_getEvents(self):
+    try:
+      uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
+      events = self.api.getEvents(uuids=uuidlist, offset=0,
+                limit=1)
+      # just checking if the number of events is as expected
+      assert len(events) == 1
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C5c_Authorized_getEvents(self):
+    try:
+      uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
+      events = self.api.getEvents(uuids=uuidlist, offset=1,
+                limit=1)
+      # just checking if the number of events is as expected
+      assert len(events) == 1
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C5d_Authorized_getEvents(self):
+    try:
+      uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
+      events = self.api.getEvents(uuids=uuidlist, offset=3,
+                limit=1)
+      # just checking if the number of events is as expected
+      assert len(events) == 0
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C5d_Authorized_getEvents(self):
+    try:
+      uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
+      events = self.api.getEvents(uuids=uuidlist, startDate=datetime.now())
+      # just checking if the number of events is as expected
+      assert len(events) == 0
     except Ce1susAPIException as e:
       print e
       assert False

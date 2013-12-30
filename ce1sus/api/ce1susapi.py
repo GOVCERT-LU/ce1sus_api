@@ -42,7 +42,7 @@ class Ce1susUndefinedException(Ce1susAPIException):
     Ce1susAPIException.__init__(self, message)
 
 
-class Ce1susUndefinedParameter(Ce1susAPIException):
+class Ce1susInvalidParameter(Ce1susAPIException):
 
   def __init__(self, message):
     Ce1susAPIException.__init__(self, message)
@@ -78,14 +78,13 @@ class Ce1susAPI(object):
   def raiseException(errorMessage):
     if ':' in errorMessage:
       temp = errorMessage.split(':')
-      errorClass = temp[0]
-      message = temp[1]
+      errorClass = temp[0].strip()
+      message = temp[1].strip()
       if errorClass == 'NothingFoundException':
         raise Ce1susNothingFoundException(message)
-      elif errorClass == 'UnknownParameter':
-        raise Ce1susUndefinedParameter(message)
+      elif errorClass == 'InvalidParameter':
+        raise Ce1susInvalidParameter(message)
       else:
-        print errorMessage
         raise Ce1susUndefinedException(errorMessage)
     else:
       raise Ce1susAPIException(errorMessage)
@@ -260,7 +259,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/attributes'.format(chksums),
+    result = self.__request('/definitions/attributes'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
@@ -271,7 +270,7 @@ class Ce1susAPI(object):
       headers = {'full_definitions': False}
     headers['chksum'] = chksums
 
-    result = self.__request('/definition/objects'.format(chksums),
+    result = self.__request('/definitions/objects'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
