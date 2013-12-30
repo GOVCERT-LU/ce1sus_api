@@ -190,7 +190,7 @@ class Ce1susAPI(object):
       result.append(mapJSONToObject(value))
     return result
 
-  def searchEvents(self,
+  def searchEventsUUID(self,
                    objectType,
                    objectContainsAttribute=list(),
                    startDate=None,
@@ -219,7 +219,7 @@ class Ce1susAPI(object):
     return uuids
 
   def searchAttributes(self,
-                       objectType,
+                       objectType=None,
                        objectContainsAttribute=list(),
                        filterAttributes=list(),
                        startDate=None,

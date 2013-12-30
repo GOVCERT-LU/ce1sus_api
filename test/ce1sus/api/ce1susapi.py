@@ -102,7 +102,7 @@ class TestAPI(unittest.TestCase):
     child.attributes.append(attribute)
 
     return event
-  """
+
   def test_A_noconnection(self):
     api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
     try:
@@ -212,7 +212,7 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-  """
+
   def test_C5_Authorized_getEvents(self):
     try:
       uuidlist = ['c26a2e2a-655f-452b-b2b7-30aea2f7d1cc', '37cda72e-0729-488e-bb45-11d11fcfc41a', 'cebe6f4b-56a1-40f9-8e16-577c94c16343']
@@ -270,6 +270,36 @@ class TestAPI(unittest.TestCase):
       events = self.api.getEvents(uuids=uuidlist, startDate=datetime.now())
       # just checking if the number of events is as expected
       assert len(events) == 0
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C7_search(self):
+    try:
+      attributes = list()
+      # get all uuids where md5 is like this
+      attributes.append({'hash_md5':'b29a4ddf98aee13f226258a8fab7d577'})
+      events = self.api.searchEventsUUID(objectType='generic_file', objectContainsAttribute=attributes)
+      assert len(events) == 1
+      assert events[0] == '8454e6da-0c44-4617-aedb-bc8604715e7f'
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  def test_C8_search(self):
+    try:
+      attributes = list()
+      # get all uuids where md5 is like this
+      attributes.append({'hash_md5':'b29a4ddf98aee13f226258a8fab7d577'})
+      filterAttributes = list()
+      filterAttributes.append('mime_type')
+      events = self.api.searchAttributes(objectContainsAttribute=attributes, filterAttributes=filterAttributes, withDefinition=True)
+
+      assert len(events) == 1
+      assert events[0].uuid == '8454e6da-0c44-4617-aedb-bc8604715e7f'
+      assert len(events[0].objects) == 1
+      assert len(events[0].objects[0].attributes) == 1
+      assert events[0].objects[0].attributes[0].definition.name == 'mime_type'
     except Ce1susAPIException as e:
       print e
       assert False
