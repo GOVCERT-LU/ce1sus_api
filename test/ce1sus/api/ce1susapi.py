@@ -26,10 +26,12 @@ class TestAPI(unittest.TestCase):
   # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
   URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = 'efa814f1e08534991fe5a3e8e4032861f6b2d69f'
-  UUID = '43ecf6c4-d25b-4862-9b63-4bc17125fc70'
 
   def setUp(self):
     self.api = Ce1susAPI(TestAPI.URL, TestAPI.APIKEY)
+
+  def tearDown(self):
+    pass
 
   @staticmethod
   def __generateEvent():
@@ -45,7 +47,7 @@ class TestAPI(unittest.TestCase):
     event.comments = list()
     event.published = 1
     event.status = 'Deleted'
-    event.uuid = TestAPI.UUID
+
 
     # attach some objects
     obj = RestObject()
@@ -107,7 +109,7 @@ class TestAPI(unittest.TestCase):
     api = Ce1susAPI('http://dontexist:8080/REST/0.2.0', 'SomeKey')
     try:
 
-      api.getEventByUUID(TestAPI.UUID)
+      api.getEventByUUID('9e299a5a-9591-4f11-a51f-8d0d11d37f80')
       assert False
     except Ce1susAPIConnectionException:
       assert True
@@ -119,7 +121,7 @@ class TestAPI(unittest.TestCase):
     api = Ce1susAPI(TestAPI.URL, 'SomeKey2')
     try:
       api = Ce1susAPI(TestAPI.URL, 'SomeKey2')
-      api.getEventByUUID(TestAPI.UUID)
+      api.getEventByUUID('9e299a5a-9591-4f11-a51f-8d0d11d37f80')
       assert False
     except Ce1susForbiddenException:
       assert True
@@ -156,7 +158,7 @@ class TestAPI(unittest.TestCase):
   def test_C1b_Authorized_Get_NotFound(self):
     try:
       # this is a valid uuid but not found
-      self.api.getEventByUUID('32016ddc-1b61-41e7-a563-2d9e27ad7986 ')
+      self.api.getEventByUUID('32016ddc-1b61-41e7-a563-2d9e27ad7986')
       assert False
     except Ce1susNothingFoundException:
       assert True
@@ -173,19 +175,8 @@ class TestAPI(unittest.TestCase):
       returnEvent = self.api.insertEvent(event, True)
       uuidValue = returnEvent.uuid
       returnEvent = self.api.getEventByUUID(uuidValue, withDefinition=True)
+      returnEvent.uuid = None
       assert (compareObjects(event, returnEvent))
-    except Ce1susAPIException as e:
-      print e
-      assert False
-
-  def test_C2b_Authorized_Get(self):
-    try:
-      returnEvent = self.api.getEventByUUID(TestAPI.UUID, True)
-      event = TestAPI.__generateEvent()
-      # is as expected?
-      assert (compareObjects(event, returnEvent))
-    except Ce1susNothingFoundException:
-      assert False
     except Ce1susAPIException as e:
       print e
       assert False
@@ -226,7 +217,8 @@ class TestAPI(unittest.TestCase):
     try:
      adefinitions = self.api.getAttributeDefinitions()
      odefinitions = self.api.getObjectDefinitions()
-     assert True
+     assert len(adefinitions) == 103
+     assert len(odefinitions) == 12
     except Ce1susAPIException as e:
       print e
       assert False
@@ -300,6 +292,18 @@ class TestAPI(unittest.TestCase):
       assert len(events[0].objects) == 1
       assert len(events[0].objects[0].attributes) == 1
       assert events[0].objects[0].attributes[0].definition.name == 'mime_type'
+    except Ce1susAPIException as e:
+      print e
+      assert False
+  def test_C1b_Authorized_Get_NotFound(self):
+    try:
+      # this is a valid uuid but not found
+      event = self.api.getEventByUUID('cd2beada-57ed-4011-8e84-c0c51f4b8eb4')
+      assert True
+    except Ce1susNothingFoundException:
+      assert False
+    except Ce1susInvalidParameter:
+      assert False
     except Ce1susAPIException as e:
       print e
       assert False
