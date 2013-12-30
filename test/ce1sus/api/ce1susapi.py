@@ -297,6 +297,18 @@ class TestAPI(unittest.TestCase):
       print e
       assert False
 
+  def test_C9_eventsevents(self):
+    try:
+      uuidlist = ['fc54c7e1-69c6-44f3-84c9-b957dbbfe256']
+      events = self.api.getEvents(uuids=uuidlist)
+      # just checking if the number of events is as expected
+      assert len(events) == 1
+      events = self.api.getEventByUUID('fc54c7e1-69c6-44f3-84c9-b957dbbfe256')
+      assert True
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

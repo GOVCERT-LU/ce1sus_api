@@ -9,6 +9,7 @@ __license__ = 'GPL v3+'
 
 import json
 import requests
+import codecs
 from ce1sus.api.restclasses import RestClass, populateClassNamebyDict, \
                                    mapResponseToObject, getData, \
                                    mapJSONToObject
