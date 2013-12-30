@@ -83,7 +83,7 @@ def stringToDateTime(string):
   try:
     return dateutil.parser.parse(string)
   except:
-    raise InputException('Format of Date "{0}" is unknown'.format(string))
+    raise InputException('Format of Date "{0}" is unknown'.format('fii'))
 
 def cleanPostValue(value):
   result = None
