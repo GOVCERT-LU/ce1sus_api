@@ -23,8 +23,8 @@ from datetime import datetime
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
-  URL = 'http://localhost:8080/REST/0.2.0'
+  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
+  # URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = '646a4ed8aa4808a548835f7b4640280abfa2d289'
 
   def setUp(self):
