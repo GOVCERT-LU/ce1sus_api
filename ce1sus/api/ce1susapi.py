@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""module providing authentication"""
-
 __author__ = 'Weber Jean-Paul'
 __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
@@ -11,8 +9,8 @@ import json
 import requests
 import codecs
 from ce1sus.api.restclasses import RestClass, populateClassNamebyDict, \
-                                   mapResponseToObject, getData, \
-                                   mapJSONToObject
+    mapResponseToObject, getData, \
+    mapJSONToObject
 
 
 def json_pretty_print(j):
@@ -20,45 +18,31 @@ def json_pretty_print(j):
 
 
 class Ce1susAPIException(Exception):
-
-  def __init__(self, message):
-    Exception.__init__(self, message)
+  pass
 
 
 class Ce1susForbiddenException(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class Ce1susNothingFoundException(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class Ce1susUndefinedException(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class Ce1susInvalidParameter(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class NothingFoundException(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class Ce1susAPIConnectionException(Ce1susAPIException):
-
-  def __init__(self, message):
-    Ce1susAPIException.__init__(self, message)
+  pass
 
 
 class Ce1susAPI(object):
@@ -140,20 +124,15 @@ class Ce1susAPI(object):
     raise Ce1susAPIException('Undefined Error')
 
   def getEventByUUID(self, uuid, withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition}
 
     result = self.__request('/event/{0}'.format(uuid),
                             None, headers)
     return mapResponseToObject(result)
 
   def insertEvent(self, event, withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition}
+
     if isinstance(event, RestClass):
       data = dict(event.toJSON(True, True))
       result = self.__request('/event', data, headers)
@@ -169,11 +148,10 @@ class Ce1susAPI(object):
                 limit=20,
                 withDefinition=False,
                 uuids=list()):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
-    headers['uuids'] = uuids
+    headers = {'fulldefinitions': withDefinition,
+               'uuids': uuids
+               }
+
     if startDate:
       headers['startdate'] = startDate
     if endDate:
@@ -199,10 +177,10 @@ class Ce1susAPI(object):
                    offset=0,
                    limit=20,
                    withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition
+               'objectattributes': objectContainsAttribute,
+               'objecttype': objectType,
+               }
 
     if startDate:
       headers['startdate'] = startDate
@@ -212,8 +190,6 @@ class Ce1susAPI(object):
       headers['page'] = offset
     if limit:
       headers['limit'] = limit
-    headers['objectattributes'] = objectContainsAttribute
-    headers['objecttype'] = objectType
     result = self.__request('/search/events', None, headers)
     key, uuids = getData(result)
     del key
@@ -228,10 +204,12 @@ class Ce1susAPI(object):
                        offset=0,
                        limit=20,
                        withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition,
+               'objectattributes': objectContainsAttribute,
+               'objecttype': objectType,
+               'attributes': filterAttributes,
+               }
+
     if startDate:
       headers['startdate'] = startDate
     if endDate:
@@ -240,9 +218,6 @@ class Ce1susAPI(object):
       headers['page'] = offset
     if limit:
       headers['limit'] = limit
-    headers['objectattributes'] = objectContainsAttribute
-    headers['objecttype'] = objectType
-    headers['attributes'] = filterAttributes
     events = list()
     result = self.__request('/search/attributes', None, headers)
     key, values = getData(result)
@@ -254,32 +229,26 @@ class Ce1susAPI(object):
     return events
 
   def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
-    headers['chksum'] = chksums
+    headers = {'fulldefinitions': withDefinition,
+               'chksum': chksums
+               }
 
     result = self.__request('/definitions/attributes'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
   def getObjectDefinitions(self, chksums=list(), withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
-    headers['chksum'] = chksums
+    headers = {'fulldefinitions': withDefinition,
+               'chksum': chksums
+               }
 
     result = self.__request('/definitions/objects'.format(chksums),
                             None, headers)
     return mapResponseToObject(result)
 
   def insertAttributeDefinition(self, definition, withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition}
+
     if isinstance(definition, RestClass):
       data = dict(definition.toJSON(True, True))
       result = self.__request('/definition/attribute', data, headers)
@@ -289,10 +258,8 @@ class Ce1susAPI(object):
                                 + 'RestClass').format(definition))
 
   def insertObjectDefinition(self, definition, withDefinition=False):
-    if withDefinition:
-      headers = {'fulldefinitions': True}
-    else:
-      headers = {'fulldefinitions': False}
+    headers = {'fulldefinitions': withDefinition}
+
     if isinstance(definition, RestClass):
       data = dict(definition.toJSON(True, True))
       result = self.__request('/definition/object', data, headers)
