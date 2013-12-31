@@ -5,6 +5,7 @@ __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
+import os
 import json
 import requests
 import codecs
@@ -62,6 +63,7 @@ class Ce1susAPI(object):
     self.proxies = proxies
     self.verify_ssl = verify_ssl
     self.ssl_cert = ssl_cert
+    self.definitions = None
 
   @staticmethod
   def raiseException(errorMessage):
@@ -273,3 +275,41 @@ class Ce1susAPI(object):
     else:
       raise Ce1susAPIException(('Object definition does not implement '
                                 + 'RestClass').format(definition))
+
+  def load_definitions(self, cache=True, definitions_file=None):
+    ret = {}
+
+    if cache and definitions_file is None:
+      raise Ce1susAPIException('If you want to cache the definitions, you need to specify a valid cache-file path')
+
+    if cache and not definitions_file is None and os.path.isfile(definitions_file):
+      with open(definitions_file, 'rb') as f:
+        defs_json = f.read()
+
+      defs_dict = json.loads(defs_json)
+
+      for d in defs_dict:
+        for v in d.values():
+          ret[v['name']] = v
+    else:
+      defs = self.getAttributeDefinitions(withDefinition=True)
+      defs_dict = []
+      for d in defs:
+        v = d.toDict(withDefinition=True)
+        defs_dict.append(v)
+        ret[v['RestAttributeDefinition']['name']] = v['RestAttributeDefinition']
+
+      if cache:
+        defs_json = json.dumps(defs_dict)
+
+        with open(definitions_file, 'wb') as f:
+          f.write(defs_json)
+
+    self.definitions = ret
+
+  def definition_to_chksum(self, definition):
+    if self.definitions is None:
+      raise Ce1susAPIException('Definitions not loaded')
+
+    return self.definitions[definition]['chksum']
+
