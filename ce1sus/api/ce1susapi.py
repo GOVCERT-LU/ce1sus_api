@@ -33,6 +33,10 @@ class Ce1susUndefinedException(Ce1susAPIException):
   pass
 
 
+class Ce1susUnkownDefinition(Ce1susAPIException):
+  pass
+
+
 class Ce1susInvalidParameter(Ce1susAPIException):
   pass
 
@@ -69,6 +73,8 @@ class Ce1susAPI(object):
         raise Ce1susNothingFoundException(message)
       elif errorClass == 'InvalidParameter':
         raise Ce1susInvalidParameter(message)
+      elif errorClass == 'UnknownDefinitionException':
+        raise Ce1susUnkownDefinition(message)
       else:
         raise Ce1susUndefinedException(errorMessage)
     else:
@@ -134,7 +140,7 @@ class Ce1susAPI(object):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(event, RestClass):
-      data = dict(event.toJSON(True, True))
+      data = dict(event.toDict(True, True))
       result = self.__request('/event', data, headers)
       return mapResponseToObject(result)
     else:
@@ -250,7 +256,7 @@ class Ce1susAPI(object):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(definition, RestClass):
-      data = dict(definition.toJSON(True, True))
+      data = dict(definition.toDict(True, True))
       result = self.__request('/definition/attribute', data, headers)
       return mapResponseToObject(result)
     else:
@@ -261,7 +267,7 @@ class Ce1susAPI(object):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(definition, RestClass):
-      data = dict(definition.toJSON(True, True))
+      data = dict(definition.toDict(True, True))
       result = self.__request('/definition/object', data, headers)
       return mapResponseToObject(result)
     else:
