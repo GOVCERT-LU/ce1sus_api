@@ -177,7 +177,7 @@ class Ce1susAPI(object):
                    offset=0,
                    limit=20,
                    withDefinition=False):
-    headers = {'fulldefinitions': withDefinition
+    headers = {'fulldefinitions': withDefinition,
                'objectattributes': objectContainsAttribute,
                'objecttype': objectType,
                }
