@@ -49,7 +49,7 @@ def __populateAtomicValue(instance, key, value, makeBinary=True):
         fileName = jsonFile[0]
         del fileName
         strData = jsonFile[1]
-        value = strData.decode('base64')
+        value = base64.b64decode(strData)
     else:
       if stringValue.isdigit():
         value = eval(stringValue)
