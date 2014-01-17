@@ -424,7 +424,7 @@ class Ce1susWrappedFile(object):
         self.name = hashSHA1(self.value)
 
   def get_base64(self):
-    return u'{0}'.format(self.value.encode('base64'))
+    return '{0}'.format(self.value.encode('base64'))
 
   def get_api_wrapped_value(self):
     return {'file': (self.name, self.get_base64())}
