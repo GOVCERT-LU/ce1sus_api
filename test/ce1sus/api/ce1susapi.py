@@ -15,7 +15,7 @@ import unittest
 from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException, Ce1susInvalidParameter, Ce1susForbiddenException, Ce1susUnkownDefinition
 from ce1sus.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
 from dagr.helpers.datumzait import datumzait
-from dagr.helpers.objects import compareObjects
+from dagr.helpers.objects import compareObjects, printObject
 from dagr.helpers.string import stringToDateTime
 from datetime import datetime
 
@@ -23,8 +23,8 @@ from datetime import datetime
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
-  # URL = 'http://localhost:8080/REST/0.2.0'
+  # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
+  URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = '646a4ed8aa4808a548835f7b4640280abfa2d289'
 
   def setUp(self):
@@ -437,6 +437,20 @@ class TestAPI(unittest.TestCase):
       assert True
     except Ce1susAPIException as e:
       assert False
+
+
+  def test_C14_files(self):
+    try:
+      # this is not a valid uuid
+      event = self.api.getEventByUUID('aceaa47f-6088-4837-ab90-6a27a44a827c')
+      assert True
+    except Ce1susNothingFoundException:
+      assert False
+    except Ce1susInvalidParameter:
+      assert False
+    except Ce1susAPIException:
+      assert False
+
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

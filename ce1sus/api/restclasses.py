@@ -21,6 +21,7 @@ from types import DictionaryType, ListType
 from dagr.helpers.string import stringToDateTime, InputException
 import json
 import re
+import base64
 
 
 def __instantiateClass(className):
@@ -424,7 +425,8 @@ class Ce1susWrappedFile(object):
         self.name = hashSHA1(self.value)
 
   def get_base64(self):
-    return '{0}'.format(self.value.encode('base64'))
+    return base64.b64encode(self.value)
 
   def get_api_wrapped_value(self):
     return {'file': (self.name, self.get_base64())}
+

@@ -12,42 +12,18 @@ import codecs
 from ce1sus.api.restclasses import RestClass, populateClassNamebyDict, \
     mapResponseToObject, getData, \
     mapJSONToObject
+from ce1sus.api.exceptions import Ce1susAPIException, \
+                                  Ce1susForbiddenException, \
+                                  Ce1susNothingFoundException, \
+                                  Ce1susUndefinedException, \
+                                  Ce1susUnkownDefinition, \
+                                  Ce1susInvalidParameter, \
+                                  Ce1susAPIConnectionException
 
 
 def json_pretty_print(j):
   return json.dumps(j, sort_keys=True, indent=4, separators=(',', ': '))
 
-
-class Ce1susAPIException(Exception):
-  pass
-
-
-class Ce1susForbiddenException(Ce1susAPIException):
-  pass
-
-
-class Ce1susNothingFoundException(Ce1susAPIException):
-  pass
-
-
-class Ce1susUndefinedException(Ce1susAPIException):
-  pass
-
-
-class Ce1susUnkownDefinition(Ce1susAPIException):
-  pass
-
-
-class Ce1susInvalidParameter(Ce1susAPIException):
-  pass
-
-
-class NothingFoundException(Ce1susAPIException):
-  pass
-
-
-class Ce1susAPIConnectionException(Ce1susAPIException):
-  pass
 
 
 class Ce1susAPI(object):
