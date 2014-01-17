@@ -11,7 +11,7 @@ __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
-import ce1sus.api.ce1susapi
+import ce1sus.api.exceptions
 from dagr.helpers.hash import hashSHA1
 from abc import abstractmethod
 from dagr.helpers.objects import getFields
@@ -408,7 +408,7 @@ class RestAttributeDefinition(RestClass):
 class Ce1susWrappedFile(object):
   def __init__(self, stream=None, str_=None, name=''):
     if (stream is None and str_ is None) or (not stream is None and not str_ is None):
-      raise ce1sus.api.ce1susapi.Ce1susInvalidParameter()
+      raise ce1sus.api.exceptions.Ce1susInvalidParameter()
     elif not stream is None:
       self.value = stream.read()
 
