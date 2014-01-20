@@ -65,7 +65,7 @@ class TestAPI(unittest.TestCase):
     attribute.definition.description = 'The file_name field specifies the name of the file.'
     attribute.definition.regex = '^.+$'
     attribute.definition.classIndex = 1
-    attribute.definition.handlerIndex = 0
+    attribute.definition.handlerIndex = 5
     attribute.definition.chksum = '7c6c684b9085854c068529684c65024d00a34a4f'
     attribute.value = 'MaliciousTest.exe'
     attribute.ioc = 1
