@@ -14,14 +14,14 @@ __license__ = 'GPL v3+'
 import re
 import cgi
 import dateutil.parser
+import json
+
 
 class InputException(Exception):
   """
   Base exception for input exceptions
   """
-  def __init__(self, message):
-    Exception.__init__(self, message)
-
+pass
 
 def plaintext2html(text, tabstop=4):
   """
@@ -67,13 +67,17 @@ def plaintext2html(text, tabstop=4):
         last = string.groups()[-1]
         if last in ['\n', '\r', '\r\n']:
           last = '<br/>'
-        return '%s<a href="%s">%s</a>%s' % (prefix, url, url, last)
+        # I dont want links!
+        # return '%s<a href="%s">%s</a>%s' % (prefix, url, url, last)
+        return '%s%s%s' % (prefix, url, last)
   # convert to text to be compliant
   stringText = unicode(text)
   if len(stringText) > 0:
-    return re.sub(re_string, replacements, stringText)
+    stringText = re.sub(re_string, replacements, stringText)
+    stringText = stringText.replace('\"', '&quot;')
   else:
-    return ''
+    stringText = ''
+  return stringText
 
 
 def stringToDateTime(string):
@@ -83,7 +87,7 @@ def stringToDateTime(string):
   try:
     return dateutil.parser.parse(string)
   except:
-    raise InputException('Format of Date "{0}" is unknown'.format('fii'))
+    raise InputException(u'Format of Date "{0}" is unknown'.format(string))
 
 def cleanPostValue(value):
   result = None
@@ -92,7 +96,7 @@ def cleanPostValue(value):
   else:
     result = value
   if result:
-    result.strip()
+    result.strip().encode('UTF-8', 'ignore')
   return result
 
 def isNotNull(value):
@@ -105,3 +109,29 @@ def isNotNull(value):
     return False
   string = unicode(value)
   return string and string != ''
+
+
+def convert_to_value(string):
+  """
+  Tries to convert a string to a python value
+
+  :param string: a string representing a python value
+  :type string: String
+
+  :returns: object
+  """
+  if string is None:
+    result = None
+  else:
+    upper_fct = getattr(string, 'upper')
+    if upper_fct() in ['YES', 'TRUE', 'T']:
+      result = True
+    elif upper_fct() in ['NO', 'FALSE', 'F']:
+      result = False
+    else:
+      try:
+        result = json.loads(string)
+      except ValueError:
+        result = string
+
+  return result

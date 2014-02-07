@@ -8,10 +8,6 @@ __license__ = 'GPL v3+'
 import os
 import json
 import requests
-import codecs
-from ce1sus.api.restclasses import RestClass, populateClassNamebyDict, \
-    mapResponseToObject, getData, \
-    mapJSONToObject
 from ce1sus.api.exceptions import Ce1susAPIException, \
                                   Ce1susForbiddenException, \
                                   Ce1susNothingFoundException, \
@@ -19,11 +15,14 @@ from ce1sus.api.exceptions import Ce1susAPIException, \
                                   Ce1susUnkownDefinition, \
                                   Ce1susInvalidParameter, \
                                   Ce1susAPIConnectionException
+from ce1sus.api.common import JSONConverter, JSONException
+from ce1sus.api.restclasses import RestClass
+from ce1sus.api.dictconverter import DictConverter, DictConversionException
+from types import DictType
 
 
 def json_pretty_print(j):
   return json.dumps(j, sort_keys=True, indent=4, separators=(',', ': '))
-
 
 
 class Ce1susAPI(object):
@@ -40,23 +39,29 @@ class Ce1susAPI(object):
     self.verify_ssl = verify_ssl
     self.ssl_cert = ssl_cert
     self.definitions = None
+    self.json_converter = JSONConverter(None)
+    self.dictconverter = DictConverter(None)
 
   @staticmethod
   def raiseException(errorMessage):
+    if isinstance(errorMessage, DictType):
+        errorMessage = errorMessage.get('RestException', 'Fooo')
+
     if ':' in errorMessage:
       temp = errorMessage.split(':')
       errorClass = temp[0].strip()
       message = temp[1].strip()
-      if errorClass == 'NothingFoundException':
-        raise Ce1susNothingFoundException(message)
-      elif errorClass == 'InvalidParameter':
-        raise Ce1susInvalidParameter(message)
-      elif errorClass == 'UnknownDefinitionException':
-        raise Ce1susUnkownDefinition(message)
-      else:
-        raise Ce1susUndefinedException(errorMessage)
     else:
       raise Ce1susAPIException(errorMessage)
+
+    if errorClass == 'NothingFoundException':
+      raise Ce1susNothingFoundException(message)
+    elif errorClass == 'InvalidParameter':
+      raise Ce1susInvalidParameter(message)
+    elif errorClass == 'UnknownDefinitionException':
+      raise Ce1susUnkownDefinition(message)
+    else:
+      raise Ce1susUndefinedException(errorMessage)
 
   def __request(self, method, data=None, extra_headers=None):
     try:
@@ -69,7 +74,7 @@ class Ce1susAPI(object):
           headers[key] = value
       if data:
         request = requests.post(url,
-                               data=json.dumps(data),
+                               data=self.json_converter.generate_json(data),
                                headers=headers,
                                proxies=self.proxies,
                                verify=self.verify_ssl,
@@ -85,42 +90,40 @@ class Ce1susAPI(object):
       else:
         try:
           request.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-          if '403' in e.message or 'Forbidden' in e.message:
+        except requests.exceptions.HTTPError as error:
+          if '403' in error.message or 'Forbidden' in error.message:
             raise Ce1susForbiddenException('Not authorized.')
-          if '500' in e.message:
-            raise Ce1susAPIException('Server Error'.format(e.message))
-          raise Ce1susAPIException('Error ({0})'.format(e))
-    except requests.ConnectionError as e:
-      raise Ce1susAPIConnectionException('{0}'.format(e.message))
-    # Process custom exceptions
-    jsonObj = json.loads(response)
-    resonseObj = jsonObj.get('response', None)
-    if resonseObj:
-      if resonseObj.get('status', 'ERROR') == 'ERROR':
-        errorMsg = ''
-        for error in resonseObj.get('errors', list()):
-          for value in error.itervalues():
-            errorMsg += value + '.'
-        Ce1susAPI.raiseException(errorMsg)
-      else:
-        return jsonObj
+          if '500' in error.message:
+            raise Ce1susAPIException('Server Error'.format(error.message))
+          raise Ce1susAPIException('Error ({0})'.format(error))
+    except requests.ConnectionError as error:
+      raise Ce1susAPIConnectionException('{0}'.format(error.message))
+
+    # process answer
+    try:
+      rest_obj = self.json_converter.get_rest_object(response)
+      return rest_obj
+    except JSONException as error:
+      Ce1susAPI.raiseException(error.message)
+    except Exception as error:
+      Ce1susAPI.raiseException(error.message)
+
     raise Ce1susAPIException('Undefined Error')
 
   def getEventByUUID(self, uuid, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
-    result = self.__request('/event/{0}'.format(uuid),
+    rest_event = self.__request('/event/{0}'.format(uuid),
                             None, headers)
-    return mapResponseToObject(result)
+    return rest_event
 
   def insertEvent(self, event, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(event, RestClass):
-      data = dict(event.toDict(True, True))
-      result = self.__request('/event', data, headers)
-      return mapResponseToObject(result)
+      data = self.dictconverter.convert_to_dict(event)
+      rest_event = self.__request('/event', data, headers)
+      return rest_event
     else:
       raise Ce1susAPIException(('Event does not implement '
                                 + 'RestClass').format(event))
@@ -145,13 +148,7 @@ class Ce1susAPI(object):
     if limit:
       headers['limit'] = limit
 
-    result = self.__request('/events', None, headers)
-    key, values = getData(result)
-    del key
-    result = list()
-    for value in values:
-      result.append(mapJSONToObject(value))
-    return result
+    return self.__request('/events', None, headers)
 
   def searchEventsUUID(self,
                    objectType,
@@ -217,37 +214,36 @@ class Ce1susAPI(object):
                'chksum': chksums
                }
 
-    result = self.__request('/definitions/attributes'.format(chksums),
+    reat_att_def = self.__request('/definitions/attributes'.format(chksums),
                             None, headers)
-    return mapResponseToObject(result)
+    return reat_att_def
 
   def getObjectDefinitions(self, chksums=list(), withDefinition=False):
     headers = {'fulldefinitions': withDefinition,
                'chksum': chksums
                }
 
-    result = self.__request('/definitions/objects'.format(chksums),
+    reat_obj_def = self.__request('/definitions/objects'.format(chksums),
                             None, headers)
-    return mapResponseToObject(result)
+    return reat_obj_def
 
   def insertAttributeDefinition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(definition, RestClass):
-      data = dict(definition.toDict(True, True))
-      result = self.__request('/definition/attribute', data, headers)
-      return mapResponseToObject(result)
+      data = dict(definition.to_dict(True, True))
+      reat_obj_def = self.__request('/definition/attribute', data, headers)
+      return reat_obj_def
     else:
       raise Ce1susAPIException(('Attribute definition does not implement '
                                 + 'RestClass').format(definition))
 
   def insertObjectDefinition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
-
     if isinstance(definition, RestClass):
-      data = dict(definition.toDict(True, True))
-      result = self.__request('/definition/object', data, headers)
-      return mapResponseToObject(result)
+      data = dict(definition.to_dict())
+      rest_obj_def = self.__request('/definition/object', data, headers)
+      return rest_obj_def
     else:
       raise Ce1susAPIException(('Object definition does not implement '
                                 + 'RestClass').format(definition))
@@ -271,7 +267,7 @@ class Ce1susAPI(object):
       defs = self.getAttributeDefinitions(withDefinition=True)
       defs_dict = []
       for d in defs:
-        v = d.toDict(withDefinition=True)
+        v = d.to_dict(with_definition=True)
         defs_dict.append(v)
         ret[v['RestAttributeDefinition']['name']] = v['RestAttributeDefinition']
 
@@ -288,4 +284,3 @@ class Ce1susAPI(object):
       raise Ce1susAPIException('Definitions not loaded')
 
     return self.definitions[definition]['chksum']
-

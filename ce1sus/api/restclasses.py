@@ -11,174 +11,27 @@ __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
-import ce1sus.api.exceptions
-from dagr.helpers.hash import hashSHA1
 from abc import abstractmethod
-from dagr.helpers.objects import getFields
-from os.path import basename
-from importlib import import_module
-from types import DictionaryType, ListType
-from dagr.helpers.string import stringToDateTime, InputException
-import json
-import re
-import base64
-
-
-def __instantiateClass(className):
-  module = import_module('.restclasses', 'ce1sus.api')
-  clazz = getattr(module, className)
-  # instantiate
-  instance = clazz()
-  # check if handler base is implemented
-  if not isinstance(instance, RestClass):
-    raise RestAPIException(('{0} does not implement '
-                            + 'RestClass').format(className))
-  return instance
-
-
-def __populateAtomicValue(instance, key, value, makeBinary=True):
-  if value == '':
-    value = None
-  else:
-    stringValue = u'{0}'.format(value)
-    if (makeBinary and re.match(r'^\{.*file.*:.*\}$', stringValue)):
-        # decompress file
-      dictionary = json.loads(value)
-      jsonFile = dictionary.get('file', None)
-      if jsonFile:
-        fileName = jsonFile[0]
-        del fileName
-        strData = jsonFile[1]
-        value = base64.b64decode(strData)
-    else:
-      if stringValue.isdigit():
-        value = eval(stringValue)
-      else:
-        try:
-          # is it a date?
-          value = stringToDateTime(stringValue)
-        except InputException:
-          pass
-  setattr(instance, key, value)
-
-
-def __setDictValue(instance, key, value, makeBinary=True):
-  subkey, subvalue = getObjectData(value)
-  subinstance = populateClassNamebyDict(subkey, subvalue, makeBinary)
-  setattr(instance, key, subinstance)
-
-
-def __setListValue(instance, key, value, makeBinary=True):
-  result = list()
-  for item in value:
-    subkey, subvalue = getObjectData(item)
-    subinstance = populateClassNamebyDict(subkey, subvalue, makeBinary)
-    result.append(subinstance)
-  setattr(instance, key, result)
-
-
-def __populateInstanceByDict(instance, dictionary, makeBinary=True):
-
-  for key, value in dictionary.iteritems():
-    if isinstance(value, DictionaryType):
-      __setDictValue(instance, key, value, makeBinary)
-    elif isinstance(value, ListType):
-      __setListValue(instance, key, value, makeBinary)
-    else:
-      __populateAtomicValue(instance, key, value, makeBinary)
-
-
-def populateClassNamebyDict(clazz, dictionary, makeBinary=True):
-  instance = __instantiateClass(clazz)
-  __populateInstanceByDict(instance, dictionary, makeBinary=makeBinary)
-  return instance
-
-
-def getObjectData(dictionary):
-  for key, value in dictionary.iteritems():
-    if key == 'response':
-      continue
-    else:
-      return key, value
-
-
-def getData(obj):
-  response = obj.get('response', None)
-  if response.get('status', None) == 'OK':
-    return getObjectData(obj)
-  else:
-    message = response.get('errors', '')[0]
-    raise Ce1susAPIException(message)
-
-
-def mapResponseToObject(jsonData):
-  key, value = getData(jsonData)
-  if key == 'list':
-    result = list()
-    for item in value:
-      subkey, subvalue = getObjectData(item)
-      obj = populateClassNamebyDict(subkey, subvalue)
-      result.append(obj)
-    return result
-  else:
-    return populateClassNamebyDict(key, value)
-
-
-
-def mapJSONToObject(jsonData):
-  if jsonData:
-    key, value = getObjectData(jsonData)
-    return populateClassNamebyDict(key, value)
-  else:
-    return None
-
-
-class RestAPIException(Exception):
-  """
-  Exception base for handler exceptions
-  """
-  def __init__(self, message):
-    Exception.__init__(self, message)
-
-
-class RestClassException(Exception):
-  """Broker Exception"""
-  def __init__(self, message):
-    Exception.__init__(self, message)
+from ce1sus.api.exceptions import RestClassException
 
 
 class RestClass(object):
+  """Rest object base class"""
 
-  def populate(self, dbObject, isOwner=False, full=True):
-    objFields = getFields(dbObject)
-    selfFields = getFields(self)
-    for name in selfFields:
-      if not name.startswith('_'):
-        if name in objFields:
-          value = getattr(dbObject, name)
-          if isinstance(value, ListType):
-            # if the value is a list call toRestObject on all sub items
-            items = list()
-            for item in value:
-              items.append(item.toRestObject(isOwner, full))
-            setattr(self, name, items)
-          else:
-            # if the value is a DB object
-            toRestObject = getattr(value, "toRestObject", None)
-            if callable(toRestObject):
-                setattr(self, name, value.toRestObject(isOwner, full))
-            else:
-              # if the value is "atomic"
-              setattr(self, name, value)
+  def get_classname(self):
+    """Returns the current class name"""
+    return self.__class__.__name__
 
   @abstractmethod
-  def toDict(self, full=False, withDefinition=False):
+  def to_dict(self):
+    """converts the object to a dictionary"""
     raise RestClassException(('ToJson is not implemented for '
-                              + '{0}').format(self.__class__.__name__))
+                              + '{0}').format(self.get_classname()))
 
 
 # pylint: disable=R0902
 class RestEvent(RestClass):
+  """Rest class of an event"""
 
   def __init__(self):
     RestClass.__init__(self)
@@ -190,76 +43,52 @@ class RestEvent(RestClass):
     self.risk = None
     self.analysis = None
     self.objects = list()
-    self.comments = list()
     self.published = None
     self.status = None
     self.uuid = None
     self.share = 1
 
-  def toDict(self, full=False, withDefinition=False):
-    result = dict()
-    result[self.__class__.__name__] = dict()
-    result[self.__class__.__name__]['uuid'] = self.uuid
-    result[self.__class__.__name__]['title'] = self.title
-    result[self.__class__.__name__]['description'] = u'{0}'.format(
-                                                              self.description)
-    if self.first_seen:
-      result[self.__class__.__name__]['first_seen'] = u'{0}'.format(
-                                                  self.first_seen.isoformat())
+  def __set_value(self, dictionary, attributename, value):
+    """sets the value for the given attribute if existing else raise an exception"""
+    if value:
+      dictionary[self.get_classname()][attributename] = u'{0}'.format(value)
     else:
-      result[self.__class__.__name__]['first_seen'] = ''
+      raise RestClassException('{0} attribute was no set'.format(attributename))
+
+  def __set_date_value(self, dictionary, attributename, value):
+    """sets the value for the given attribute if existing else raise an exception"""
+    if value:
+      self.__set_value(dictionary, attributename, value.isoformat())
+    else:
+      raise RestClassException('{0} attribute was no set'.format(attributename))
+
+  def to_dict(self):
+    result = dict()
+    result[self.get_classname()] = dict()
+    result[self.get_classname()]['uuid'] = self.uuid
+    result[self.get_classname()]['title'] = self.title
+    result[self.get_classname()]['description'] = u'{0}'.format(self.description)
+    self.__set_date_value(result, 'first_seen', self.first_seen)
     if self.last_seen is None:
       self.last_seen = self.first_seen
-    if self.last_seen:
-      result[self.__class__.__name__]['last_seen'] = u'{0}'.format(
-                                                    self.last_seen.isoformat())
-    else:
-      result[self.__class__.__name__]['last_seen'] = ''
-    if self.tlp is None:
-      tlp = None
-    else:
-      if hasattr(self.tlp, 'text'):
-        tlp = self.tlp.text
-      else:
-        tlp = self.tlp
-    result[self.__class__.__name__]['tlp'] = tlp
-    result[self.__class__.__name__]['published'] = self.published
-    result[self.__class__.__name__]['status'] = self.status
-    result[self.__class__.__name__]['risk'] = self.risk
-    result[self.__class__.__name__]['analysis'] = self.analysis
-    result[self.__class__.__name__]['objects'] = None
-    if full:
-      result[self.__class__.__name__]['objects'] = list()
+    self.__set_date_value(result, 'last_seen', self.last_seen)
+    self.__set_value(result, 'tlp', self.tlp)
+    self.__set_value(result, 'status', self.status)
+    self.__set_value(result, 'risk', self.risk)
+    self.__set_value(result, 'analysis', self.analysis)
+    result[self.get_classname()]['published'] = self.published
+    if self.objects:
+      result[self.get_classname()]['objects'] = list()
       for obj in self.objects:
-        result[self.__class__.__name__]['objects'].append(
-                                            obj.toDict(full=True,
-                                                withDefinition=withDefinition
-                                                )
-                                            )
-    result[self.__class__.__name__]['comments'] = None
-    if full:
-      result[self.__class__.__name__]['comments'] = list()
-      for comment in self.comments:
-        result[self.__class__.__name__]['comments'].append(comment.toDict())
-    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
-    return result
-
-
-class RestComment(RestClass):
-
-  def __init__(self):
-    RestClass.__init__(self)
-    self.comment = None
-
-  def toDict(self, full=False, withDefinition=False):
-    result = dict()
-    result[self.__class__.__name__] = dict()
-    result[self.__class__.__name__]['comment'] = self.comment
-
+        result[self.get_classname()]['objects'].append(obj.to_dict())
+    else:
+      result[self.get_classname()]['objects'] = None
+    result[self.get_classname()]['share'] = u'{0}'.format(self.share)
     return result
 
 
 class RestObject(RestClass):
+  """Rest object representing an Object"""
 
   def __init__(self):
     RestClass.__init__(self)
@@ -269,35 +98,31 @@ class RestObject(RestClass):
     self.children = list()
     self.share = 1
 
-  def toDict(self, full=False, withDefinition=False):
+  def to_dict(self):
     result = dict()
-    result[self.__class__.__name__] = dict()
-    result[self.__class__.__name__]['children'] = list()
+    result[self.get_classname()] = dict()
+    if self.children:
+      result[self.get_classname()]['children'] = list()
+      for child in self.children:
+        result[self.get_classname()]['children'].append(child.to_dict())
+    else:
+      result[self.get_classname()]['children'] = None
+    result[self.get_classname()]['definition'] = self.definition.to_dict()
 
-    for child in self.children:
-      result[self.__class__.__name__]['children'].append(child.toDict(
-                                              full=full,
-                                              withDefinition=withDefinition
-                                              ))
-    result[self.__class__.__name__]['definition'] = self.definition.toDict(
-                                              full=False,
-                                              withDefinition=withDefinition
-                                              )
-    if full:
-      result[self.__class__.__name__]['attributes'] = list()
+    if self.attributes:
+      result[self.get_classname()]['attributes'] = list()
+
       for attribute in self.attributes:
-        result[self.__class__.__name__]['attributes'].append(
-                                                       attribute.toDict(
-                                               full=True,
-                                               withDefinition=withDefinition
-                                                                       )
-                                                            )
-        pass
-    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
+        result[self.get_classname()]['attributes'].append(attribute.to_dict())
+    else:
+      result[self.get_classname()]['attributes'] = None
+
+    result[self.get_classname()]['share'] = u'{0}'.format(self.share)
     return result
 
 
 class RestAttribute(RestClass):
+  """Rest object representing an Attribute"""
 
   def __init__(self):
     RestClass.__init__(self)
@@ -306,127 +131,62 @@ class RestAttribute(RestClass):
     self.ioc = None
     self.share = 1
 
-  def toDict(self, full=False, withDefinition=False):
+  def to_dict(self):
     result = dict()
-    result[self.__class__.__name__] = dict()
-    result[self.__class__.__name__]['definition'] = self.definition.toDict(
-                                                full=False,
-                                                withDefinition=withDefinition
-                                                          )
-    if isinstance(self.value, Ce1susWrappedFile):
-      value = self.value.get_api_wrapped_value()
-    else:
-      value = self.value
-
-    result[self.__class__.__name__]['value'] = u'{0}'.format(value)
-    result[self.__class__.__name__]['ioc'] = u'{0}'.format(self.ioc)
-    result[self.__class__.__name__]['share'] = u'{0}'.format(self.share)
+    result[self.get_classname()] = dict()
+    result[self.get_classname()]['definition'] = self.definition.to_dict()
+    result[self.get_classname()]['value'] = self.value
+    result[self.get_classname()]['ioc'] = u'{0}'.format(self.ioc)
+    result[self.get_classname()]['share'] = u'{0}'.format(self.share)
     return result
 
 
 class RestObjectDefinition(RestClass):
+  """Rest object representing an ObjectDefinition"""
   # TODO: Add relationable
   def __init__(self):
     RestClass.__init__(self)
     self.name = None
     self.description = None
-    self.dbchksum = None
+    self.chksum = None
     self.attributes = list()
 
-  @property
-  def chksum(self):
-    if self.dbchksum is None:
-      self.dbchksum = hashSHA1(self.name)
-    return self.dbchksum
-
-  @chksum.setter
-  def chksum(self, value):
-    self.dbchksum = value
-
-  def toDict(self, full=False, withDefinition=False):
+  def to_dict(self):
     result = dict()
-    result[self.__class__.__name__] = dict()
-    if withDefinition:
-      result[self.__class__.__name__]['name'] = self.name
-      result[self.__class__.__name__]['description'] = self.description
-
-    result[self.__class__.__name__]['chksum'] = self.chksum
-    if full:
-      result[self.__class__.__name__]['attributes'] = list()
+    result[self.get_classname()] = dict()
+    result[self.get_classname()]['name'] = self.name
+    result[self.get_classname()]['description'] = self.description
+    result[self.get_classname()]['chksum'] = self.chksum
+    if self.attributes:
+      result[self.get_classname()]['attributes'] = list()
       for attribute in self.attributes:
-        result[self.__class__.__name__]['attributes'].append(attribute.toDict(full, withDefinition))
+        result[self.get_classname()]['attributes'].append(attribute.to_dict())
+    else:
+      result[self.get_classname()]['attributes'] = None
     return result
 
 
 class RestAttributeDefinition(RestClass):
+  """Rest object representing an AttributeDefinition"""
   # TODO: Add relationable
   def __init__(self):
     RestClass.__init__(self)
     self.name = None
     self.description = None
     self.regex = None
-    self.classIndex = None
-    self.handlerIndex = None
-    self.dbchksum = None
-    self.objects = list()
+    self.class_index = None
+    self.handler_index = None
+    self.chksum = None
     self.relation = 0
 
-  @property
-  def chksum(self):
-    if self.dbchksum is None:
-      key = u'{0}{1}{2}{3}'.format(self.attribute.name,
-                             self.attribute.regex,
-                             self.attribute.classIndex,
-                             self.attribute.handlerIndex)
-      self.dbchksum = hashSHA1(key)
-    return self.dbchksum
-
-  @chksum.setter
-  def chksum(self, value):
-    self.dbchksum = value
-
-  def toDict(self, full=False, withDefinition=False):
+  def to_dict(self):
     result = dict()
-    result[self.__class__.__name__] = dict()
-
-    if withDefinition:
-      result[self.__class__.__name__]['name'] = self.name
-      result[self.__class__.__name__]['description'] = self.description
-      result[self.__class__.__name__]['regex'] = self.regex
-      result[self.__class__.__name__]['classIndex'] = self.classIndex
-      result[self.__class__.__name__]['handlerIndex'] = self.handlerIndex
-      result[self.__class__.__name__]['relation'] = self.relation
-    result[self.__class__.__name__]['chksum'] = self.chksum
-    if full:
-      result[self.__class__.__name__]['objects'] = list()
-      for obj in self.objects:
-        result[self.__class__.__name__]['objects'].append(obj.toDict(full,
-                                                                     withDefinition))
+    result[self.get_classname()] = dict()
+    result[self.get_classname()]['name'] = self.name
+    result[self.get_classname()]['description'] = self.description
+    result[self.get_classname()]['regex'] = self.regex
+    result[self.get_classname()]['class_index'] = self.class_index
+    result[self.get_classname()]['handler_index'] = self.handler_index
+    result[self.get_classname()]['relation'] = self.relation
+    result[self.get_classname()]['chksum'] = self.chksum
     return result
-
-
-class Ce1susWrappedFile(object):
-  def __init__(self, stream=None, str_=None, name=''):
-    if (stream is None and str_ is None) or (not stream is None and not str_ is None):
-      raise ce1sus.api.exceptions.Ce1susInvalidParameter()
-    elif not stream is None:
-      self.value = stream.read()
-
-      if name and not name == '':
-        self.name = name
-      else:
-        self.name = os.path.basename(stream.name)
-    elif not str_ is None:
-      self.value = str_
-
-      if name and not name == '':
-        self.name = name
-      else:
-        self.name = hashSHA1(self.value)
-
-  def get_base64(self):
-    return base64.b64encode(self.value)
-
-  def get_api_wrapped_value(self):
-    return json.dumps({'file': (self.name, self.get_base64())})
-

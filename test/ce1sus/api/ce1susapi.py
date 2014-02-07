@@ -16,15 +16,15 @@ from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenE
 from ce1sus.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
 from dagr.helpers.datumzait import datumzait
 from dagr.helpers.objects import compareObjects, printObject
-from dagr.helpers.string import stringToDateTime
+from dagr.helpers.strings import stringToDateTime
 from datetime import datetime
 
 
 # pylint:disable=R0904
 class TestAPI(unittest.TestCase):
 
-  URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
-  # URL = 'http://localhost:8080/REST/0.2.0'
+  # URL = 'https://ce1sus-dev.int.govcert.etat.lu/REST/0.2.0'
+  URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = '646a4ed8aa4808a548835f7b4640280abfa2d289'
 
   def setUp(self):
@@ -64,8 +64,8 @@ class TestAPI(unittest.TestCase):
     attribute.definition.name = 'file_name'
     attribute.definition.description = 'The file_name field specifies the name of the file.'
     attribute.definition.regex = '^.+$'
-    attribute.definition.classIndex = 1
-    attribute.definition.handlerIndex = 5
+    attribute.definition.class_index = 1
+    attribute.definition.handler_index = 5
     attribute.definition.chksum = '7c6c684b9085854c068529684c65024d00a34a4f'
     attribute.value = 'MaliciousTest.exe'
     attribute.ioc = 1
@@ -86,8 +86,8 @@ class TestAPI(unittest.TestCase):
     attribute.definition.name = 'description'
     attribute.definition.description = 'Contains free text description for an object'
     attribute.definition.regex = '^.+$'
-    attribute.definition.classIndex = 0
-    attribute.definition.handlerIndex = 9
+    attribute.definition.class_index = 0
+    attribute.definition.handler_index = 9
     attribute.definition.chksum = 'b248f7d94db2e4da5188d7d8ba242f23ba733012'
     attribute.value = 'This is a description!'
     attribute.ioc = 0
@@ -119,7 +119,7 @@ class TestAPI(unittest.TestCase):
       assert False
     except Ce1susForbiddenException:
       assert True
-    except Ce1susAPIException:
+    except Ce1susAPIException as e:
       assert False
     del api
 
@@ -149,6 +149,18 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException:
       assert False
 
+  def test_C1_Authorized_Get(self):
+    try:
+      # this is not a valid uuid
+      event = self.api.getEventByUUID('dd4141ea-c34c-430b-a30f-cca45183bd63')
+      assert True
+    except Ce1susNothingFoundException:
+      assert False
+    except Ce1susInvalidParameter:
+      assert False
+    except Ce1susAPIException:
+      assert False
+
   def test_C1b_Authorized_Get_NotFound(self):
     try:
       # this is a valid uuid but not found
@@ -171,8 +183,7 @@ class TestAPI(unittest.TestCase):
       returnEvent = self.api.getEventByUUID(uuidValue, withDefinition=True)
       returnEvent.uuid = None
       assert (compareObjects(event, returnEvent))
-    except Ce1susAPIException as e:
-      print e
+    except Ce1susAPIException:
       assert False
 
   def test_C3_Authorized_Insert_SpecialChars(self):
@@ -209,6 +220,7 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
+
 
   def test_C5_Authorized_getDefinitions(self):
     try:
@@ -277,6 +289,7 @@ class TestAPI(unittest.TestCase):
       print e
       assert False
 
+
   def test_C8_search(self):
     try:
       attributes = list()
@@ -294,6 +307,7 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
+
 
   def test_C9_eventsevents(self):
     try:
@@ -363,15 +377,14 @@ class TestAPI(unittest.TestCase):
     # test if a user can get access events of a group which he doesn't belong to
 
     api = Ce1susAPI(TestAPI.URL,
-                    'e0a9208bd4b5b79b902de528cd0245bb576a99cc')
+                    'fb2ee669-b95c-4ea7-9ec3-a0794e2b3e38')
     # get a single event
     try:
-      api.getEventByUUID('9e299a5a-9591-4f11-a51f-8d0d11d37f80')
+      event = api.getEventByUUID('9e299a5a-9591-4f11-a51f-8d0d11d37f80')
       assert False
     except Ce1susForbiddenException:
       assert True
     except Ce1susAPIException as e:
-      print e
       assert False
 
     # get all events
@@ -383,7 +396,6 @@ class TestAPI(unittest.TestCase):
     except Ce1susAPIException as e:
       assert False
     del api
-
 
   def test_C13_insertDefinition(self):
     definition = RestObjectDefinition()
@@ -400,8 +412,8 @@ class TestAPI(unittest.TestCase):
     adefinition.name = 'Test_attribute'
     adefinition.description = 'test description'
     adefinition.regex = '^.+$'
-    adefinition.classIndex = 0
-    adefinition.handlerIndex = 9
+    adefinition.class_index = 0
+    adefinition.handler_index = 9
     adefinition.chksum = 'b248f7d94db2e4da5188d7d8ba242f23ba733012'
     adefinition.relation = 0
 
@@ -427,8 +439,8 @@ class TestAPI(unittest.TestCase):
     adefinition.name = 'Test_attribute'
     adefinition.description = 'test description'
     adefinition.regex = '^.+$'
-    adefinition.classIndex = 0
-    adefinition.handlerIndex = 20
+    adefinition.class_index = 0
+    adefinition.handler_index = 20
     adefinition.chksum = 'b248f7d94db2e4da5188d7d8ba242f23ba733012'
     adefinition.relation = 0
 
@@ -441,7 +453,6 @@ class TestAPI(unittest.TestCase):
       assert True
     except Ce1susAPIException as e:
       assert False
-
 
   def test_C14_files(self):
     try:
