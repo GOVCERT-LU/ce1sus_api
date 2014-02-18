@@ -47,6 +47,7 @@ class RestEvent(RestClass):
     self.status = None
     self.uuid = None
     self.share = 1
+    self.group = ''
 
   def __set_value(self, dictionary, attributename, value):
     """sets the value for the given attribute if existing else raise an exception"""
@@ -71,7 +72,8 @@ class RestEvent(RestClass):
     self.__set_date_value(result, 'first_seen', self.first_seen)
     if self.last_seen is None:
       self.last_seen = self.first_seen
-    self.__set_date_value(result, 'last_seen', self.last_seen)
+    else:
+      self.__set_date_value(result, 'last_seen', self.last_seen)
     self.__set_value(result, 'tlp', self.tlp)
     self.__set_value(result, 'status', self.status)
     self.__set_value(result, 'risk', self.risk)
@@ -84,6 +86,7 @@ class RestEvent(RestClass):
     else:
       result[self.get_classname()]['objects'] = None
     result[self.get_classname()]['share'] = u'{0}'.format(self.share)
+    self.__set_value(result, 'group', self.group)
     return result
 
 
@@ -149,7 +152,8 @@ class RestObjectDefinition(RestClass):
     self.name = None
     self.description = None
     self.chksum = None
-    self.attributes = list()
+    self.attributes = None
+    self.share = 0
 
   def to_dict(self):
     result = dict()
@@ -163,6 +167,7 @@ class RestObjectDefinition(RestClass):
         result[self.get_classname()]['attributes'].append(attribute.to_dict())
     else:
       result[self.get_classname()]['attributes'] = None
+    result[self.get_classname()]['share'] = u'{0}'.format(self.share)
     return result
 
 
@@ -175,9 +180,10 @@ class RestAttributeDefinition(RestClass):
     self.description = None
     self.regex = None
     self.class_index = None
-    self.handler_index = None
+    self.handler_uuid = None
     self.chksum = None
     self.relation = 0
+    self.share = 0
 
   def to_dict(self):
     result = dict()
@@ -186,7 +192,8 @@ class RestAttributeDefinition(RestClass):
     result[self.get_classname()]['description'] = self.description
     result[self.get_classname()]['regex'] = self.regex
     result[self.get_classname()]['class_index'] = self.class_index
-    result[self.get_classname()]['handler_index'] = self.handler_index
+    result[self.get_classname()]['handler_uuid'] = self.handler_uuid
     result[self.get_classname()]['relation'] = self.relation
     result[self.get_classname()]['chksum'] = self.chksum
+    result[self.get_classname()]['share'] = u'{0}'.format(self.share)
     return result

@@ -150,6 +150,24 @@ class Ce1susAPI(object):
 
     return self.__request('/events', None, headers)
 
+  def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
+    headers = {'fulldefinitions': withDefinition,
+               'chksum': chksums
+               }
+
+    reat_att_def = self.__request('/definitions/attributes'.format(chksums),
+                            None, headers)
+    return reat_att_def
+
+  def getObjectDefinitions(self, chksums=list(), withDefinition=False):
+    headers = {'fulldefinitions': withDefinition,
+               'chksum': chksums
+               }
+
+    reat_obj_def = self.__request('/definitions/objects'.format(chksums),
+                            None, headers)
+    return reat_obj_def
+
   def searchEventsUUID(self,
                    objectType,
                    objectContainsAttribute=list(),
@@ -209,29 +227,11 @@ class Ce1susAPI(object):
         events.append(restEvent)
     return events
 
-  def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
-    headers = {'fulldefinitions': withDefinition,
-               'chksum': chksums
-               }
-
-    reat_att_def = self.__request('/definitions/attributes'.format(chksums),
-                            None, headers)
-    return reat_att_def
-
-  def getObjectDefinitions(self, chksums=list(), withDefinition=False):
-    headers = {'fulldefinitions': withDefinition,
-               'chksum': chksums
-               }
-
-    reat_obj_def = self.__request('/definitions/objects'.format(chksums),
-                            None, headers)
-    return reat_obj_def
-
   def insertAttributeDefinition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(definition, RestClass):
-      data = dict(definition.to_dict(True, True))
+      data = dict(definition.to_dict())
       reat_obj_def = self.__request('/definition/attribute', data, headers)
       return reat_obj_def
     else:
