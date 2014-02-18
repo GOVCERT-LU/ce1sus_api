@@ -267,7 +267,7 @@ class Ce1susAPI(object):
       defs = self.getAttributeDefinitions(withDefinition=True)
       defs_dict = []
       for d in defs:
-        v = d.to_dict(with_definition=True)
+        v = d.to_dict()
         defs_dict.append(v)
         ret[v['RestAttributeDefinition']['name']] = v['RestAttributeDefinition']
 
