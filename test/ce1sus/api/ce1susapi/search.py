@@ -25,6 +25,7 @@ class TestGetEvent(unittest.TestCase):
   def setUp(self):
     self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
 
+  """
   def test_search(self):
     try:
       attributes = list()
@@ -32,7 +33,26 @@ class TestGetEvent(unittest.TestCase):
       attributes.append({'hash_md5': '4e8d220388770a31ec036a88ba6f62b5'})
       events = self.api.searchEventsUUID(objectType='generic_file', objectContainsAttribute=attributes)
       assert len(events) == 1
-      assert events[0] == 'f66290ee-8cbb-49a0-846f-e64074f1937b'
+      assert events[0].uuid == 'f66290ee-8cbb-49a0-846f-e64074f1937b'
+    except Ce1susAPIException as e:
+      print e
+      assert False
+  """
+
+  def test_search_attributes(self):
+    try:
+      attributes = list()
+      # get all uuids where md5 is like this
+      attributes.append({'hash_md5': '4e8d220388770a31ec036a88ba6f62b5'})
+      filter_attributes = list()
+      filter_attributes.append('mime_type')
+      events = self.api.searchAttributes(objectContainsAttribute=attributes, filterAttributes=filter_attributes, withDefinition=True)
+
+      assert len(events) == 1
+      assert events[0].uuid == 'f66290ee-8cbb-49a0-846f-e64074f1937b'
+      assert len(events[0].objects) == 1
+      assert len(events[0].objects[0].attributes) == 1
+      assert events[0].objects[0].attributes[0].definition.name == 'mime_type'
     except Ce1susAPIException as e:
       print e
       assert False

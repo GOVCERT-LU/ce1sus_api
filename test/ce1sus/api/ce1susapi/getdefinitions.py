@@ -44,11 +44,11 @@ class TestGetEvent(unittest.TestCase):
                                                    withDefinition=False)
       assert odefinitions
       assert len(odefinitions) == 1
-      assert len(odefinitions[0].attributes) == 0
+      assert not odefinitions[0].attributes
     except Ce1susAPIException as e:
       print e
       assert False
-  """
+
   def test_get_definition_with_relations(self):
     try:
       chksums = list()
@@ -61,4 +61,4 @@ class TestGetEvent(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-  """
+

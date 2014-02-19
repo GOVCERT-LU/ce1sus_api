@@ -96,6 +96,8 @@ class Ce1susAPI(object):
           if '500' in error.message:
             raise Ce1susAPIException('Server Error'.format(error.message))
           raise Ce1susAPIException('Error ({0})'.format(error))
+    except JSONException as error:
+      raise Ce1susAPIException(error)
     except requests.ConnectionError as error:
       raise Ce1susAPIConnectionException('{0}'.format(error.message))
 
@@ -121,7 +123,10 @@ class Ce1susAPI(object):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(event, RestClass):
-      data = self.dictconverter.convert_to_dict(event)
+      try:
+        data = self.dictconverter.convert_to_dict(event)
+      except DictConversionException as error:
+        raise Ce1susAPIException(error)
       rest_event = self.__request('/event', data, headers)
       return rest_event
     else:
@@ -174,10 +179,8 @@ class Ce1susAPI(object):
                    startDate=None,
                    endDate=None,
                    offset=0,
-                   limit=20,
-                   withDefinition=False):
-    headers = {'fulldefinitions': withDefinition,
-               'objectattributes': objectContainsAttribute,
+                   limit=20):
+    headers = {'attributes': objectContainsAttribute,
                'objecttype': objectType,
                }
 
@@ -190,9 +193,7 @@ class Ce1susAPI(object):
     if limit:
       headers['limit'] = limit
     result = self.__request('/search/events', None, headers)
-    key, uuids = getData(result)
-    del key
-    return uuids
+    return result
 
   def searchAttributes(self,
                        objectType=None,
@@ -204,9 +205,9 @@ class Ce1susAPI(object):
                        limit=20,
                        withDefinition=False):
     headers = {'fulldefinitions': withDefinition,
-               'objectattributes': objectContainsAttribute,
+               'attributes': objectContainsAttribute,
                'objecttype': objectType,
-               'attributes': filterAttributes,
+               'objectattributes': filterAttributes,
                }
 
     if startDate:
@@ -217,15 +218,8 @@ class Ce1susAPI(object):
       headers['page'] = offset
     if limit:
       headers['limit'] = limit
-    events = list()
     result = self.__request('/search/attributes', None, headers)
-    key, values = getData(result)
-    for item in values:
-      jsonObject = json.loads(item)
-      for key, value in jsonObject.iteritems():
-        restEvent = populateClassNamebyDict(key, value, True)
-        events.append(restEvent)
-    return events
+    return result
 
   def insertAttributeDefinition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
