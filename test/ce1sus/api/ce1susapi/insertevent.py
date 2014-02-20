@@ -39,6 +39,7 @@ class TestInsertEvent(unittest.TestCase):
     event.comments = list()
     event.published = 1
     event.status = 'Deleted'
+    event.group = 'Default_Group'
 
     # attach some objects
     obj = RestObject()
@@ -49,6 +50,7 @@ class TestInsertEvent(unittest.TestCase):
     obj.attributes = list()
     obj.parent = None
     obj.children = None
+    obj.author = 'Default_Group'
 
     # object Attributes
 
@@ -58,11 +60,12 @@ class TestInsertEvent(unittest.TestCase):
     attribute.definition.description = 'The file_name field specifies the name of the file.'
     attribute.definition.regex = '^.+$'
     attribute.definition.class_index = 1
-    attribute.definition.handler_index = 6
+    attribute.definition.handler_uuid = '08645c00-8dec-11e3-baa8-0800200c9a66'
     attribute.definition.attributes = None
     attribute.definition.chksum = 'beba24a09fe92b09002616e6d703b3a14306fed1'
     attribute.value = 'MaliciousTest.exe'
     attribute.ioc = 1
+    attribute.author = 'Default_Group'
 
     obj.attributes.append(attribute)
 
@@ -74,6 +77,7 @@ class TestInsertEvent(unittest.TestCase):
     child.attributes = list()
     child.parent = None
     child.children = None
+    child.author = 'Default_Group'
 
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
@@ -81,10 +85,11 @@ class TestInsertEvent(unittest.TestCase):
     attribute.definition.description = 'Contains free text description for an object'
     attribute.definition.regex = '^.+$'
     attribute.definition.class_index = 0
-    attribute.definition.handler_index = 10
+    attribute.definition.handler_uuid = '1a8ec7d0-8dec-11e3-baa8-0800200c9a66'
     attribute.definition.chksum = '408ae68eee4c289d0aac277963787374ff5ad137'
     attribute.value = 'This is a description!'
     attribute.ioc = 0
+    attribute.author = 'Default_Group'
 
     child.attributes.append(attribute)
 
@@ -105,6 +110,7 @@ class TestInsertEvent(unittest.TestCase):
     child.attributes = list()
     child.parent = None
     child.children = None
+    child.author = 'Default_Group'
 
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
@@ -112,10 +118,11 @@ class TestInsertEvent(unittest.TestCase):
     attribute.definition.description = 'Contains free text description for an object'
     attribute.definition.regex = '^.+$'
     attribute.definition.class_index = 0
-    attribute.definition.handler_index = 10
+    attribute.definition.handler_uuid = '1a8ec7d0-8dec-11e3-baa8-0800200c9a66'
     attribute.definition.chksum = '408ae68eee4c289d0aac277963787374ff5ad137'
     attribute.value = 'This is a description of a child!'
     attribute.ioc = 0
+    attribute.author = 'Default_Group'
 
     child.attributes.append(attribute)
 
@@ -125,7 +132,6 @@ class TestInsertEvent(unittest.TestCase):
   def setUp(self):
     self.api = Ce1susAPI(TestInsertEvent.URL, TestInsertEvent.APIKEY)
 
-  """"
   def test_authorized_insert(self):
 
     try:
@@ -182,23 +188,27 @@ class TestInsertEvent(unittest.TestCase):
       print e
       assert False
 
-  """
   def test_authorized_insert_with_file(self):
     try:
       event = TestInsertEvent.__generateEvent1()
       attribute = RestAttribute()
       attribute.definition = RestAttributeDefinition()
       attribute.definition.chksum = '03c710c3265fe4488f559ebda358beb63525bda3'
+      attribute.definition.name = 'description'
+      attribute.definition.description = 'The raw file data'
+      attribute.definition.regex = '^.+$'
+      attribute.definition.class_index = 1
+      attribute.definition.share = 0
+      attribute.definition.relation = 0
+      attribute.definition.handler_uuid = 'e8b47b60-8deb-11e3-baa8-0800200c9a66'
+
       attribute.value = ('TestFile.txt', 'IAphc2RhZmFzZmQ=')
       attribute.ioc = 0
+      attribute.author = 'Default_Group'
       event.objects[1].attributes.append(attribute)
-      return_event = self.api.insertEvent(event, False)
-      uuid = return_event.uuid
-      return_event.uuid = None
-      assert compareObjects(return_event, event)
-      return_event.uuid = uuid
-      get_event = self.api.getEventByUUID(uuid, withDefinition=False)
-      assert compareObjects(return_event, get_event)
+      return_event = self.api.insertEvent(event, True)
+      # TODO: find a way to test this properly
+      assert return_event
 
     except Ce1susAPIException as e:
       print e
