@@ -107,8 +107,7 @@ class Ce1susAPI(object):
       return rest_obj
     except JSONException as error:
       Ce1susAPI.raiseException(error.message)
-    except Exception as error:
-      Ce1susAPI.raiseException(error.message)
+
 
     raise Ce1susAPIException('Undefined Error')
 

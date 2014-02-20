@@ -125,6 +125,7 @@ class TestInsertEvent(unittest.TestCase):
   def setUp(self):
     self.api = Ce1susAPI(TestInsertEvent.URL, TestInsertEvent.APIKEY)
 
+  """"
   def test_authorized_insert(self):
 
     try:
@@ -177,6 +178,28 @@ class TestInsertEvent(unittest.TestCase):
       assert False
     except Ce1susForbiddenException:
       assert True
+    except Ce1susAPIException as e:
+      print e
+      assert False
+
+  """
+  def test_authorized_insert_with_file(self):
+    try:
+      event = TestInsertEvent.__generateEvent1()
+      attribute = RestAttribute()
+      attribute.definition = RestAttributeDefinition()
+      attribute.definition.chksum = '03c710c3265fe4488f559ebda358beb63525bda3'
+      attribute.value = ('TestFile.txt', 'IAphc2RhZmFzZmQ=')
+      attribute.ioc = 0
+      event.objects[1].attributes.append(attribute)
+      return_event = self.api.insertEvent(event, False)
+      uuid = return_event.uuid
+      return_event.uuid = None
+      assert compareObjects(return_event, event)
+      return_event.uuid = uuid
+      get_event = self.api.getEventByUUID(uuid, withDefinition=False)
+      assert compareObjects(return_event, get_event)
+
     except Ce1susAPIException as e:
       print e
       assert False

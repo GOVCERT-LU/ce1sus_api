@@ -81,3 +81,12 @@ class TestGetEvent(unittest.TestCase):
 
   def test_get_event_from_other_group(self):
     assert False
+
+  def test_get_event_with_file(self):
+    try:
+      # this is a valid uuid but not found
+      event = self.api.getEventByUUID('f66290ee-8cbb-49a0-846f-e64074f1937b', True)
+      assert True
+    except Ce1susAPIException as e:
+      print e
+      assert False
