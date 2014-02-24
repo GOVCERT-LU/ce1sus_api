@@ -36,6 +36,8 @@ class RestClass(object):
   def convert_value(value):
     """converts the value None to '' else it will be send as None-Text"""
     if value or value == 0:
+      if isinstance(value, Ce1susWrappedFile):
+        return value.get_api_wrapped_value()
       return value
     else:
       return ''
