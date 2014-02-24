@@ -236,4 +236,4 @@ class Ce1susWrappedFile(object):
     return base64.b64encode(self.value)
 
   def get_api_wrapped_value(self):
-    return json.dumps({'file': (self.name, self.get_base64())})
+    return json.dumps((self.name, self.get_base64()))
