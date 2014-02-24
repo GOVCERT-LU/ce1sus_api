@@ -12,7 +12,11 @@ __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 from abc import abstractmethod
-from ce1sus.api.exceptions import RestClassException
+from ce1sus.api.exceptions import RestClassException, Ce1susInvalidParameter
+from dagr.helpers.hash import hashSHA1
+import base64
+import os
+import json
 
 
 class RestClass(object):
@@ -25,7 +29,7 @@ class RestClass(object):
   @abstractmethod
   def to_dict(self):
     """converts the object to a dictionary"""
-    raise RestClassException(('ToJson is not implemented for '
+    raise RestClassException((u'ToJson is not implemented for '
                               + '{0}').format(self.get_classname()))
 
   @staticmethod
@@ -62,14 +66,14 @@ class RestEvent(RestClass):
     if value:
       dictionary[self.get_classname()][attributename] = u'{0}'.format(value)
     else:
-      raise RestClassException('{0} attribute was no set'.format(attributename))
+      raise RestClassException(u'{0} attribute was no set'.format(attributename))
 
   def __set_date_value(self, dictionary, attributename, value):
     """sets the value for the given attribute if existing else raise an exception"""
     if value:
       self.__set_value(dictionary, attributename, value.isoformat())
     else:
-      raise RestClassException('{0} attribute was no set'.format(attributename))
+      raise RestClassException(u'{0} attribute was no set'.format(attributename))
 
   def to_dict(self):
     result = dict()
@@ -205,3 +209,29 @@ class RestAttributeDefinition(RestClass):
     result[self.get_classname()]['chksum'] = RestClass.convert_value(self.chksum)
     result[self.get_classname()]['share'] = u'{0}'.format(RestClass.convert_value(self.share))
     return result
+
+
+class Ce1susWrappedFile(object):
+  def __init__(self, stream=None, str_=None, name=''):
+    if (stream is None and str_ is None) or (not stream is None and not str_ is None):
+      raise Ce1susInvalidParameter()
+    elif not stream is None:
+      self.value = stream.read()
+
+      if name and not name == '':
+        self.name = name
+      else:
+        self.name = os.path.basename(stream.name)
+    elif not str_ is None:
+      self.value = str_
+
+      if name and not name == '':
+        self.name = name
+      else:
+        self.name = hashSHA1(self.value)
+
+  def get_base64(self):
+    return base64.b64encode(self.value)
+
+  def get_api_wrapped_value(self):
+    return json.dumps({'file': (self.name, self.get_base64())})
