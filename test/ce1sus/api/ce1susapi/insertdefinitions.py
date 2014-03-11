@@ -21,7 +21,7 @@ from ce1sus.api.restclasses import RestAttributeDefinition, RestObjectDefinition
 class TestGetEvent(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
+  APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
 
   def setUp(self):
     self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
@@ -74,6 +74,7 @@ class TestGetEvent(unittest.TestCase):
     try:
       result = self.api.insertObjectDefinition(definition, True)
     except Ce1susAPIException as e:
+      print e
       assert False
 
   def test_insert_definitionWithFalutyIndexes(self):

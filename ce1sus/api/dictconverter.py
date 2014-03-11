@@ -12,10 +12,11 @@ __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 from ce1sus.api.restclasses import RestClass
-from ce1sus.common.ce1susutils import get_class, convert_string_to_value
+from dagr.helpers.converters import convert_string_to_value
 from dagr.helpers.debug import Log
 from datetime import datetime
 from types import DictionaryType, ListType
+from dagr.helpers.objects import get_class
 
 
 class DictConversionException(Exception):
@@ -55,14 +56,14 @@ class DictConverter(object):
         self._get_logger().debug(u'Found class name {0}'.format(key))
         return key, value
     else:
-      raise DictConversionException('Dictionary is malformed expected one entry got more.')
+      raise DictConversionException(u'Dictionary is malformed expected one entry got more.')
 
   def __populate_classname_by_dict(self, classname, dictionary):
     """ Maps the data to the class"""
     self._get_logger().debug(u'Mapping dictionary to class {0}'.format(classname))
-    instance = get_class('ce1sus.api.restclasses', classname)()
+    instance = get_class(u'ce1sus.api.restclasses', classname)()
     if not isinstance(instance, RestClass):
-      raise DictConversionException(('{0} does not implement RestClass').format(classname))
+      raise DictConversionException((u'{0} does not implement RestClass').format(classname))
     self.__populate_instance_by_dict(instance, dictionary)
     return instance
 

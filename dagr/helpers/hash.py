@@ -20,12 +20,10 @@ def __genericHash(string, hashType, salt=''):
   """
   if not string or string is None:
     return ''
-  function = getattr(hashlib, hashType)
-  hasher = function()
-  function = getattr(hasher, 'update')
-  function(string + salt)
+  hasher = getattr(hashlib, hashType)()
+  hash_str = u'{0}{1}'.format(string, salt)
+  hasher.update(hash_str.encode('utf-8'))
   return hasher.hexdigest()
-
 
 def hashMD5(string, salt=''):
   """

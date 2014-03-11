@@ -23,7 +23,7 @@ from dagr.helpers.objects import compareObjects
 class TestInsertEvent(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
+  APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
 
   @staticmethod
   def __generateEvent1():

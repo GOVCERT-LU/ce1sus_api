@@ -19,7 +19,7 @@ from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFou
 class TestGetEvent(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
+  APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
 
   def setUp(self):
     self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
@@ -48,11 +48,12 @@ class TestGetEvent(unittest.TestCase):
 
   def test_authorized_Get(self):
     try:
-      self.api.getEventByUUID('774bab19-0999-444b-b699-56ff8b33c53d')
+      self.api.getEventByUUID('992d9b83-24d6-4d0d-b2d7-0fce1bed57b6')
       assert True
     except Ce1susForbiddenException:
       assert False
-    except Ce1susAPIException:
+    except Ce1susAPIException as e:
+      print e
       assert False
 
   def test_authorized_get_invalid_uuid(self):

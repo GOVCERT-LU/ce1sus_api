@@ -23,6 +23,7 @@ class InputException(Exception):
   """
 pass
 
+
 def plaintext2html(text, tabstop=4):
   """
   returns the given text in HTML Code
@@ -52,10 +53,10 @@ def plaintext2html(text, tabstop=4):
     if characters['lineend']:
       return '<br/>'
     elif characters['space']:
-      t = string.group().replace('\t', '&nbsp;' * tabstop)
-      t = t.replace(' ', '&nbsp;')
-      return t
-    elif characters['space'] == '\t':
+      tabs = string.group().replace('\tabs', '&nbsp;' * tabstop)
+      tabs = tabs.replace(' ', '&nbsp;')
+      return tabs
+    elif characters['space'] == '\tabs':
       return ' ' * tabstop
     else:
       url = string.group('protocal')
@@ -71,13 +72,13 @@ def plaintext2html(text, tabstop=4):
         # return '%s<a href="%s">%s</a>%s' % (prefix, url, url, last)
         return '%s%s%s' % (prefix, url, last)
   # convert to text to be compliant
-  stringText = unicode(text)
-  if len(stringText) > 0:
-    stringText = re.sub(re_string, replacements, stringText)
-    stringText = stringText.replace('\"', '&quot;')
+  string_text = u'{0}'.format(text)
+  if len(string_text) > 0:
+    string_text = re.sub(re_string, replacements, string_text)
+    string_text = string_text.replace('\"', '&quot;')
   else:
-    stringText = ''
-  return stringText
+    string_text = ''
+  return string_text
 
 
 def stringToDateTime(string):
@@ -85,9 +86,12 @@ def stringToDateTime(string):
   Converts a string to a DateTime if the format is known
   """
   try:
-    return dateutil.parser.parse(string)
+    if string:
+      return dateutil.parser.parse(string)
+    return None
   except:
     raise InputException(u'Format of Date "{0}" is unknown'.format(string))
+
 
 def cleanPostValue(value):
   result = None
@@ -98,6 +102,7 @@ def cleanPostValue(value):
   if result:
     result.strip().encode('UTF-8', 'ignore')
   return result
+
 
 def isNotNull(value):
   """
