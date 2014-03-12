@@ -11,9 +11,9 @@ __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
-import dagr.helpers.strings as strings
+import ce1sus_api.helpers.strings as strings
 import re
-from dagr.helpers.validator.valuevalidator import ValueValidator
+from ce1sus_api.helpers.validator.valuevalidator import ValueValidator
 import ast
 
 

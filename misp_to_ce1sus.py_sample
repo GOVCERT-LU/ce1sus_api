@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__ = 'Georges Toth'
+__email__ = 'georges.toth@govcert.etat.lu'
+__copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
+__license__ = 'GPL v3+'
+
+
+import sys
+import json
+
+from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException, Ce1susUndefinedParameter
+import adapter.ce1sus
+import adapter.misp
+
+
+misp_api_url = 'https://misp.tld/events'
+misp_api_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+misp_tag = u'MISP TEST'
+misp_api_headers = adapter.misp.get_api_header_parameters(misp_api_key)
+
+ce1sus_api_url = 'https://ce1sus.tld/REST/0.2.0'
+ce1sus_api_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+api = Ce1susAPI(ce1sus_api_url, ce1sus_api_key, verify_ssl=False)
+
+#xml = adapter.misp.from_string(sys.stdin.read())
+xml = adapter.misp.fetch_event_list(misp_api_url, misp_api_headers)
+rest_events = adapter.misp.parse_events(xml, misp_tag)
+
+
+for e in rest_events:
+  dict_ = e.toJSON(True, True)
+  print json.dumps(dict_, sort_keys=True, indent=4, separators=(',', ': '))
+
+  try:
+    #api.insertEvent(e)
+    pass
+  except Ce1susAPIConnectionException as e:
+    raise
+  except Ce1susAPIException as e:
+    raise

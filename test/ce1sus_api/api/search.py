@@ -13,17 +13,17 @@ __license__ = 'GPL v3+'
 
 
 import unittest
-from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFoundException, Ce1susInvalidParameter, Ce1susForbiddenException
+from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException
 
 
 # pylint:disable=R0904,R0201
-class TestGetEvent(unittest.TestCase):
+class TestSearch(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
 
   def setUp(self):
-    self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
+    self.api = Ce1susAPI(TestSearch.URL, TestSearch.APIKEY)
 
   """
   def test_search(self):
@@ -46,7 +46,7 @@ class TestGetEvent(unittest.TestCase):
       attributes.append({'hash_md5': '4e8d220388770a31ec036a88ba6f62b5'})
       filter_attributes = list()
       filter_attributes.append('mime_type')
-      events = self.api.searchAttributes(objectContainsAttribute=attributes, filterAttributes=filter_attributes, withDefinition=True)
+      events = self.api.search_attributes(objectContainsAttribute=attributes, filterAttributes=filter_attributes, withDefinition=True)
 
       assert len(events) == 1
       assert events[0].uuid == 'f66290ee-8cbb-49a0-846f-e64074f1937b'

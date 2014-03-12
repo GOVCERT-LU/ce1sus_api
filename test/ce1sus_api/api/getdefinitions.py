@@ -13,22 +13,22 @@ __license__ = 'GPL v3+'
 
 
 import unittest
-from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFoundException, Ce1susInvalidParameter, Ce1susForbiddenException
+from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFoundException, Ce1susInvalidParameter, Ce1susForbiddenException
 
 
 # pylint:disable=R0904,R0201
-class TestGetEvent(unittest.TestCase):
+class TestGetDefinitons(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
 
   def setUp(self):
-    self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
+    self.api = Ce1susAPI(TestGetDefinitons.URL, TestGetDefinitons.APIKEY)
   """
   def test_authorized_get_definitions(self):
     try:
       adefinitions = self.api.getAttributeDefinitions()
-      odefinitions = self.api.getObjectDefinitions()
+      odefinitions = self.api.get_object_definitions()
       assert len(adefinitions) == 103
       assert len(odefinitions) == 11
       assert True
@@ -40,7 +40,7 @@ class TestGetEvent(unittest.TestCase):
     try:
       chksums = list()
       chksums.append('4ab2df0a57a74fdf904e0e27086676ed9c4c3cdf')
-      odefinitions = self.api.getObjectDefinitions(chksums=chksums,
+      odefinitions = self.api.get_object_definitions(chksums=chksums,
                                                    withDefinition=False)
       assert odefinitions
       assert len(odefinitions) == 1
@@ -53,7 +53,7 @@ class TestGetEvent(unittest.TestCase):
     try:
       chksums = list()
       chksums.append('4ab2df0a57a74fdf904e0e27086676ed9c4c3cdf')
-      odefinitions = self.api.getObjectDefinitions(chksums=chksums,
+      odefinitions = self.api.get_object_definitions(chksums=chksums,
                                                       withDefinition=True)
       assert odefinitions
       assert len(odefinitions) == 1
@@ -61,4 +61,3 @@ class TestGetEvent(unittest.TestCase):
     except Ce1susAPIException as e:
       print e
       assert False
-

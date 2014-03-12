@@ -8,16 +8,16 @@ __license__ = 'GPL v3+'
 import os
 import json
 import requests
-from ce1sus.api.exceptions import Ce1susAPIException, \
+from ce1sus_api.api.exceptions import Ce1susAPIException, \
                                   Ce1susForbiddenException, \
                                   Ce1susNothingFoundException, \
                                   Ce1susUndefinedException, \
                                   Ce1susUnkownDefinition, \
                                   Ce1susInvalidParameter, \
                                   Ce1susAPIConnectionException
-from ce1sus.api.common import JSONConverter, JSONException
-from ce1sus.api.restclasses import RestClass
-from ce1sus.api.dictconverter import DictConverter, DictConversionException
+from ce1sus_api.api.common import JSONConverter, JSONException
+from ce1sus_api.api.restclasses import RestClass
+from ce1sus_api.api.dictconverter import DictConverter, DictConversionException
 from types import DictType
 
 
@@ -108,17 +108,16 @@ class Ce1susAPI(object):
     except JSONException as error:
       Ce1susAPI.raiseException(error.message)
 
-
     raise Ce1susAPIException('Undefined Error')
 
-  def getEventByUUID(self, uuid, withDefinition=False):
+  def get_event_by_uuid(self, uuid, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     rest_event = self.__request('/event/{0}'.format(uuid),
                             None, headers)
     return rest_event
 
-  def insertEvent(self, event, withDefinition=False):
+  def insert_event(self, event, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(event, RestClass):
@@ -132,7 +131,7 @@ class Ce1susAPI(object):
       raise Ce1susAPIException(('Event does not implement '
                                 + 'RestClass').format(event))
 
-  def getEvents(self,
+  def get_events(self,
                 startDate=None,
                 endDate=None,
                 offset=0,
@@ -154,7 +153,7 @@ class Ce1susAPI(object):
 
     return self.__request('/events', None, headers)
 
-  def getAttributeDefinitions(self, chksums=list(), withDefinition=False):
+  def get_attribute_definitions(self, chksums=list(), withDefinition=False):
     headers = {'fulldefinitions': withDefinition,
                'chksum': chksums
                }
@@ -163,7 +162,7 @@ class Ce1susAPI(object):
                             None, headers)
     return reat_att_def
 
-  def getObjectDefinitions(self, chksums=list(), withDefinition=False):
+  def get_object_definitions(self, chksums=list(), withDefinition=False):
     headers = {'fulldefinitions': withDefinition,
                'chksum': chksums
                }
@@ -172,7 +171,7 @@ class Ce1susAPI(object):
                             None, headers)
     return reat_obj_def
 
-  def searchEventsUUID(self,
+  def search_events_uuid(self,
                    objectType,
                    objectContainsAttribute=list(),
                    startDate=None,
@@ -194,7 +193,7 @@ class Ce1susAPI(object):
     result = self.__request('/search/events', None, headers)
     return result
 
-  def searchAttributes(self,
+  def search_attributes(self,
                        objectType=None,
                        objectContainsAttribute=list(),
                        filterAttributes=list(),
@@ -220,7 +219,7 @@ class Ce1susAPI(object):
     result = self.__request('/search/attributes', None, headers)
     return result
 
-  def insertAttributeDefinition(self, definition, withDefinition=False):
+  def insert_attribute_definition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
 
     if isinstance(definition, RestClass):
@@ -231,7 +230,7 @@ class Ce1susAPI(object):
       raise Ce1susAPIException(('Attribute definition does not implement '
                                 + 'RestClass').format(definition))
 
-  def insertObjectDefinition(self, definition, withDefinition=False):
+  def insert_object_definition(self, definition, withDefinition=False):
     headers = {'fulldefinitions': withDefinition}
     if isinstance(definition, RestClass):
       data = dict(definition.to_dict())
@@ -257,7 +256,7 @@ class Ce1susAPI(object):
         for v in d.values():
           ret[v['name']] = v
     else:
-      defs = self.getAttributeDefinitions(withDefinition=True)
+      defs = self.get_attribute_definitions(withDefinition=True)
       defs_dict = []
       for d in defs:
         v = d.to_dict()

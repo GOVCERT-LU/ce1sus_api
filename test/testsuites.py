@@ -12,12 +12,24 @@ __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 import unittest
-from test.ce1sus.api.ce1susapi import TestAPI
+from test.ce1sus_api.api.connection import TestConnection
+from test.ce1sus_api.api.getdefinitions import TestGetDefinitons
+from test.ce1sus_api.api.getevent import TestGetEvent
+from test.ce1sus_api.api.getevents import TestGetEvents
+from test.ce1sus_api.api.insertdefinitions import TestInsertDefinitons
+from test.ce1sus_api.api.insertevent import TestInsertEvent
+from test.ce1sus_api.api.search import TestSearch
 
 
 def suite():
   testSuite = unittest.TestSuite()
-  testSuite.addTest(TestAPI())
+  testSuite.addTest(TestConnection())
+  testSuite.addTest(TestGetEvent())
+  testSuite.addTest(TestGetDefinitons())
+  testSuite.addTest(TestGetEvents())
+  testSuite.addTest(TestInsertDefinitons())
+  testSuite.addTest(TestInsertEvent())
+  testSuite.addTest(TestSearch())
 
   return testSuite
 

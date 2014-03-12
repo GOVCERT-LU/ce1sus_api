@@ -13,10 +13,10 @@ __license__ = 'GPL v3+'
 
 
 import unittest
-from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException
-from ce1sus.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
-from dagr.helpers.strings import stringToDateTime
-from dagr.helpers.objects import compareObjects
+from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException
+from ce1sus_api.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
+from ce1sus_api.helpers.strings import stringToDateTime
+from ce1sus_api.helpers.objects import compare_objects
 
 
 # pylint:disable=R0904, R0201
@@ -136,13 +136,13 @@ class TestInsertEvent(unittest.TestCase):
 
     try:
       event = TestInsertEvent.__generateEvent1()
-      return_event = self.api.insertEvent(event, True)
+      return_event = self.api.insert_event(event, True)
       uuid = return_event.uuid
       return_event.uuid = None
-      assert compareObjects(return_event, event)
+      assert compare_objects(return_event, event)
       return_event.uuid = uuid
-      get_event = self.api.getEventByUUID(uuid, withDefinition=True)
-      assert compareObjects(return_event, get_event)
+      get_event = self.api.get_event_by_uuid(uuid, withDefinition=True)
+      assert compare_objects(return_event, get_event)
 
     except Ce1susAPIException as e:
       print e
@@ -152,13 +152,13 @@ class TestInsertEvent(unittest.TestCase):
 
     try:
       event = TestInsertEvent.generate_event2()
-      return_event = self.api.insertEvent(event, True)
+      return_event = self.api.insert_event(event, True)
       uuid = return_event.uuid
       return_event.uuid = None
-      assert compareObjects(return_event, event)
+      assert compare_objects(return_event, event)
       return_event.uuid = uuid
-      get_event = self.api.getEventByUUID(uuid, withDefinition=True)
-      assert compareObjects(return_event, get_event)
+      get_event = self.api.get_event_by_uuid(uuid, withDefinition=True)
+      assert compare_objects(return_event, get_event)
 
     except Ce1susAPIException as e:
       print e
@@ -168,19 +168,19 @@ class TestInsertEvent(unittest.TestCase):
     event = TestInsertEvent.__generateEvent1()
     event.title = 'TitleWithSpecialChar' + u'\u2019'
     event.uuid = None
-    return_event = self.api.insertEvent(event, True)
+    return_event = self.api.insert_event(event, True)
     uuid = return_event.uuid
     return_event.uuid = None
-    assert compareObjects(return_event, event)
+    assert compare_objects(return_event, event)
     return_event.uuid = uuid
-    get_event = self.api.getEventByUUID(uuid, withDefinition=True)
-    assert (compareObjects(return_event, get_event))
+    get_event = self.api.get_event_by_uuid(uuid, withDefinition=True)
+    assert (compare_objects(return_event, get_event))
 
   def test_unauthorized_insert(self):
     api = Ce1susAPI(TestInsertEvent.URL, 'SomeKey')
     try:
       event = TestInsertEvent.__generateEvent1()
-      api.insertEvent(event)
+      api.insert_event(event)
       assert False
     except Ce1susForbiddenException:
       assert True
@@ -206,7 +206,7 @@ class TestInsertEvent(unittest.TestCase):
       attribute.ioc = 0
       attribute.author = 'Default_Group'
       event.objects[1].attributes.append(attribute)
-      return_event = self.api.insertEvent(event, True)
+      return_event = self.api.insert_event(event, True)
       # TODO: find a way to test this properly
       assert return_event
 

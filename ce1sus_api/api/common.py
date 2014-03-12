@@ -12,9 +12,9 @@ __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 
-from dagr.helpers.debug import Log
+from ce1sus_api.helpers.debug import Log
 from json import JSONEncoder, JSONDecoder
-from ce1sus.api.dictconverter import DictConverter, DictConversionException
+from ce1sus_api.api.dictconverter import DictConverter, DictConversionException
 import json
 import decimal
 

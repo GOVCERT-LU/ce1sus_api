@@ -13,18 +13,18 @@ __license__ = 'GPL v3+'
 
 
 import unittest
-from ce1sus.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFoundException, Ce1susInvalidParameter, Ce1susForbiddenException
-from ce1sus.api.restclasses import RestAttributeDefinition, RestObjectDefinition
+from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothingFoundException, Ce1susInvalidParameter, Ce1susForbiddenException
+from ce1sus_api.api.restclasses import RestAttributeDefinition, RestObjectDefinition
 
 
 # pylint:disable=R0904,R0201
-class TestGetEvent(unittest.TestCase):
+class TestInsertDefinitons(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
   APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
 
   def setUp(self):
-    self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
+    self.api = Ce1susAPI(TestInsertDefinitons.URL, TestInsertDefinitons.APIKEY)
   """
   def test_insert_attribute_definition(self):
     adefinition = RestAttributeDefinition()
@@ -50,7 +50,7 @@ class TestGetEvent(unittest.TestCase):
     # the checksum will be computed anyway on the server side
     definition.chksum = None
     try:
-      result = self.api.insertObjectDefinition(definition, True)
+      result = self.api.insert_object_definition(definition, True)
     except Ce1susAPIException as e:
       print e
       assert False
@@ -72,7 +72,7 @@ class TestGetEvent(unittest.TestCase):
     definition.attributes = list()
     definition.attributes.append(adefinition)
     try:
-      result = self.api.insertObjectDefinition(definition, True)
+      result = self.api.insert_object_definition(definition, True)
     except Ce1susAPIException as e:
       print e
       assert False
@@ -82,5 +82,3 @@ class TestGetEvent(unittest.TestCase):
 
   def test_insert_definitionWithUnkonwnUUID(self):
     assert False
-
-
