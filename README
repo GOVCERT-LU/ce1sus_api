@@ -23,8 +23,8 @@ This text is used later on to access the corresponding MISP or Ce1sus.
 
 ## Documentation ##
 ### API ###
-The api is located in the ce1sus_api.api.ce1sus.api and each function return RESTXXXX objects 
-which can be in the ce1sus.api.restclasses module.
+The module using the RESTAPI is located in the ce1sus_api.api.ce1sus.api and each function returns a or a list of RESTXXXX objects. 
+These RestXXX classes are located in the ce1sus.api.restclasses module.
  
 The API supports
 * Returning multiple/single events by their uuid
@@ -40,7 +40,7 @@ Specify what is requested i.e. objectType='Executable' then the search takes int
 type 'Executable' the objectContainsAttribute parameter is a dict setup as follows
 { file_name: foo.exe, is_malicious: True }. This last parameter is used to search in the attributes.
 
-Currently there is no possibility to make OR operations.
+Currently there is no possibility to make OR operations on search requests.
 
 The parameter "filterAttributes" specifies a filter for attribute types. This means that the event will only hold
 the objects which the requested attribute belongs to, and no other attribute than the requested one. 
@@ -56,12 +56,9 @@ The configuration file contains the following:
 [ce1sus_local]
 ....
 
-
-the command do call to import from the MISP cert to the ce1sus local is the following
+The command to import from the event 689 from the MISP "cert" to the ce1sus "local" is the following:
 
 ./misp_to_ce1sus.py -m cert -c ce1sus -e 689 
-
-Where 689 is the MISP Event identifier.
 
 ## Usage ##
 
