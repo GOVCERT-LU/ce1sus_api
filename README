@@ -60,6 +60,9 @@ The command to import from the event 689 from the MISP "cert" to the ce1sus "loc
 
 ./misp_to_ce1sus.py -m cert -c ce1sus -e 689 
 
+To import a misp xml:
+./misp_to_ce1sus.py -m cert -c ce1sus -e - < file.xml
+
 ## Usage ##
 
 Usage: misp_to_ce1sus.py [options]
