@@ -16,8 +16,13 @@ __copyright__ = 'Copyright 2014, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 
-header_tags = ['id', 'org', 'date', 'risk', 'info', 'published', 'uuid', 'attribute_count', 'analysis', 'timestamp', 'distribution', 'proposal_email_lock', 'orgc', 'locked']
-attribute_tags = ['id', 'type', 'category', 'to_ids', 'uuid', 'event_id', 'distribution', 'timestamp', 'value', 'ShadowAttribute']
+header_tags = ['id', 'org', 'date', 'risk', 'info', 'published', 'uuid', 'attribute_count',
+               'analysis', 'timestamp', 'distribution', 'proposal_email_lock', 'orgc',
+               'locked', 'threat_level_id', 'publish_timestamp'
+               ]
+attribute_tags = ['id', 'type', 'category', 'to_ids', 'uuid', 'event_id', 'distribution',
+                  'timestamp', 'value', 'ShadowAttribute'
+                  ]
 
 object_map = {'Network activity': 'network_traffic',
               'Payload delivery': 'generic_file',
@@ -51,6 +56,12 @@ attribute_map = {'domain': 'domain',
                  'as': 'analysis_free_text',
                  'pattern-in-file': 'file_content_pattern',
                  }
+
+threat_level_id_map = {'1': 'Low',
+                       '2': 'Medium',
+                       '3': 'High',
+                       '4': 'None',
+                       }
 
 
 def guess_hash_type(hash_):
@@ -129,8 +140,11 @@ def parse_event_header(event):
 
   for h in header_tags:
     e = event.find(h)
-    if not e is None:
+    if not e is None and not e.tag in event_header:
       event_header[e.tag] = e.text
+
+      if h == 'threat_level_id':
+        event_header['risk'] = threat_level_id_map[e.text]
 
   return event_header
 
