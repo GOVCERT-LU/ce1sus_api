@@ -55,6 +55,7 @@ attribute_map = {'domain': 'domain',
                  'vulnerability': 'vulnerability_cve',
                  'as': 'analysis_free_text',
                  'pattern-in-file': 'file_content_pattern',
+                 'target-org': 'targeted_organization',
                  }
 
 threat_level_id_map = {'1': 'Low',
