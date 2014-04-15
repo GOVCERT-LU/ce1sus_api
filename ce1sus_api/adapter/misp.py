@@ -201,7 +201,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         try:
           hash_type = guess_hash_type(hash_value)
         except ValueError as e:
-          print 'Error determining hash type for hash value "{0}", ignoring'.format(hash_value)
+          print u'Error determining hash type for hash value "{0}", ignoring'.format(hash_value)
       else:
         filename = value
 
@@ -224,7 +224,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         data = fetch_attachment(api_url, api_headers, id_)
       except urllib2.HTTPError:
         data = None
-        print 'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
+        print u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
 
       if not data is None:
         ce1sus_file = ce1sus_api.api.restclasses.Ce1susWrappedFile(str_=data, name=filename)
