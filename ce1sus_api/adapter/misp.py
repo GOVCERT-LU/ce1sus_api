@@ -59,11 +59,16 @@ attribute_map = {'domain': 'domain',
                  'regkey|value': 'win_registry_key',
                  }
 
-threat_level_id_map = {'1': 'Low',
+threat_level_id_map = {'1': 'High',
                        '2': 'Medium',
-                       '3': 'High',
+                       '3': 'Low',
                        '4': 'None',
                        }
+
+analysis_id_map = {'0': 'Opened',
+                   '1': 'Opened',
+                   '2': 'Completed',
+                   }
 
 
 def guess_hash_type(hash_):
@@ -147,6 +152,8 @@ def parse_event_header(event):
 
       if h == 'threat_level_id':
         event_header['risk'] = threat_level_id_map[e.text]
+      elif h == 'analysis':
+        event_header['analysis'] = analysis_id_map[e.text]
 
   return event_header
 

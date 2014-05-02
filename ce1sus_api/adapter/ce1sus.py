@@ -15,7 +15,9 @@ __copyright__ = 'Copyright 2014, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 
-ce1sus_risk_level = ['High', 'Medium', 'Low', 'None']
+ce1sus_risk_level = ['High', 'Medium', 'Low', 'None', 'Undefined']
+ce1sus_analysis_level = ['None', 'Opened', 'Stalled', 'Completed', 'Unknown']
+ce1sus_status_level = ['Confirmed', 'Draft', 'Deleted', 'Expired']
 
 ce1sus_obj_checksums = {'network_traffic': '468bc69e746c453763f1c1ed644742628ca4bb38',
                         'generic_file': '7a6272431a4546b99081d50797201ddc25a38f4c',
@@ -59,7 +61,11 @@ def create_event(event_header, tag, title_prefix='', tlp='amber'):
   if not event.risk in ce1sus_risk_level:
     event.risk = 'None'
 
-  event.analysis = 'None'
+  event.analysis = event_header.get('analysis', 'None')
+
+  if not event.analysis in ce1sus_analysis_level:
+    event.analysis = 'None'
+
   event.objects = []
   event.comments = []
   event.published = event_header.get('published', '1')
