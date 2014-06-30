@@ -19,7 +19,7 @@ from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susNothin
 class TestGetEvent(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
+  APIKEY = '05c20a7507955006f3dec7d0578e694bf53c7c1b'
 
   def setUp(self):
     self.api = Ce1susAPI(TestGetEvent.URL, TestGetEvent.APIKEY)
@@ -59,7 +59,7 @@ class TestGetEvent(unittest.TestCase):
   def test_authorized_get_invalid_uuid(self):
     try:
       # this is not a valid uuid
-      self.api.get_event_by_uuid('Something')
+      self.api.get_event_by_uuid('564602aa-22e3-48f9-9557-b13834bde881')
       assert False
     except Ce1susNothingFoundException:
       assert False
@@ -71,7 +71,7 @@ class TestGetEvent(unittest.TestCase):
   def test_authorized_get_not_found(self):
     try:
       # this is a valid uuid but not found
-      self.api.get_event_by_uuid('32016ddc-1b61-41e7-a563-2d9e27ad798b')
+      event = self.api.get_event_by_uuid('564602aa-22e3-48f9-9557-b13834bde881')
       assert False
     except Ce1susNothingFoundException:
       assert True

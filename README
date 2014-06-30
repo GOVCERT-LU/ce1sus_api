@@ -58,10 +58,10 @@ The configuration file contains the following:
 
 The command to import from the event 689 from the MISP "cert" to the ce1sus "local" is the following:
 
-./misp_to_ce1sus.py -m cert -c ce1sus -e 689 
+./misp_to_ce1sus.py -m cert -c local -e 689
 
 To import a misp xml:
-./misp_to_ce1sus.py -m cert -c ce1sus -e - < file.xml
+./misp_to_ce1sus.py -m cert -c local -e - < file.xml
 
 ## Usage ##
 

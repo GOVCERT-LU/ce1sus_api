@@ -23,7 +23,7 @@ from ce1sus_api.helpers.objects import compare_objects
 class TestInsertEvent(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = '8494a844eca00fdebf14b18e569b817289a84583'
+  APIKEY = 'a500fa6845e5d3af8577c95ca6fb4cfe26798172'
 
   @staticmethod
   def __generateEvent1():
