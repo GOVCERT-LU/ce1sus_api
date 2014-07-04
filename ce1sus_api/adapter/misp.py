@@ -96,9 +96,30 @@ def fetch_event_list(api_url, api_headers, limit=25):
 
   req = urllib2.Request(url, None, api_headers)
   resp = urllib2.urlopen(req).read()
-  xml = et.fromstring(resp)
 
-  return xml
+  return resp
+
+
+def parse_event_list(xml_string):
+  xml = from_string(xml_string)
+
+  event_list = {}
+
+  for event in xml.iter(tag='Event'):
+    a = event.find('id')
+
+    if not a is None:
+      if not a.text in event_list:
+        event_list[a.text] = {}
+      else:
+        raise ValueError('Event collision, API returned the same event twice, should not happne!')
+
+      event_id = a.text
+
+      for a in event:
+        event_list[event_id][a.tag] = a.text
+
+  return event_list
 
 
 def fetch_event(api_url, api_headers, event_id):
