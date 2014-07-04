@@ -117,8 +117,8 @@ class Ce1susAPI(object):
                             None, headers)
     return rest_event
 
-  def insert_event(self, event, withDefinition=False):
-    headers = {'fulldefinitions': withDefinition}
+  def insert_event(self, event, withDefinition=False, mkrelations=True):
+    headers = {'fulldefinitions': withDefinition, 'mkrelations': mkrelations}
 
     if isinstance(event, RestClass):
       try:
