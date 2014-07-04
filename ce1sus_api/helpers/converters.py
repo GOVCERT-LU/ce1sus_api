@@ -31,10 +31,13 @@ def convert_string_to_value(string):
     # check if datetime
     elif ValueValidator.validateDateTime(string):
       return_value = ValueConverter.set_date(string)
-    # TODO: use JSON instead
+    # TODO: rework i.e. val = int: value or similar
     elif (re.match(r'^\[.*\]$', string, re.MULTILINE) is not None or
       re.match(r'^\{.*\}$', string, re.MULTILINE) is not None):
-      return_value = ast.literal_eval(string)
+      try:
+        return_value = ast.literal_eval(string)
+      except SyntaxError:
+        return_value = string
     else:
       return_value = string
   return return_value

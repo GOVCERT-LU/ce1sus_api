@@ -20,7 +20,7 @@ from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException
 class TestSearch(unittest.TestCase):
 
   URL = 'http://localhost:8080/REST/0.2.0'
-  APIKEY = 'b5543a8ce54937b6230e276772add8af136b07e1'
+  APIKEY = 'a500fa6845e5d3af8577c95ca6fb4cfe26798172'
 
   def setUp(self):
     self.api = Ce1susAPI(TestSearch.URL, TestSearch.APIKEY)
@@ -43,11 +43,9 @@ class TestSearch(unittest.TestCase):
     try:
       attributes = list()
       # get all uuids where md5 is like this
-      attributes.append({'hash_md5': '4e8d220388770a31ec036a88ba6f62b5'})
-      filter_attributes = list()
-      filter_attributes.append('mime_type')
-      events = self.api.search_attributes(objectContainsAttribute=attributes, filterAttributes=filter_attributes, withDefinition=True)
-
+      attributes.append({'ipv4_addr': {'value': '127', 'operator': '=='}})
+      events = self.api.search_attributes(objectContainsAttribute=attributes, withDefinition=True)
+      print events
       assert len(events) == 1
       assert events[0].uuid == 'f66290ee-8cbb-49a0-846f-e64074f1937b'
       assert len(events[0].objects) == 1
