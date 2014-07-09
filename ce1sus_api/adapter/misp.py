@@ -277,6 +277,22 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         ref_object['children'].append(ref_doc_object)
       else:
         raise Exception('Cannot download files in offline mode!')
+    elif category == 'network activity' and type_ == 'attachment' and value.lower().endswith('.pcap'):
+      if not (api_url is None and api_headers is None):
+        try:
+          data = fetch_attachment(api_url, api_headers, id_)
+        except urllib2.HTTPError:
+          print 'Failed to download file "{0}" id:{1}'.format(value, id_)
+          continue
+          raise
+
+        ce1sus_file = ce1sus_api.api.restclasses.Ce1susWrappedFile(str_=data, name=value)
+
+        nt_object = {'type': 'network_traffic', 'attributes': []}
+        nt_object['attributes'].append(('raw_pcap_file', ce1sus_file, 0, share))
+        event_objects.append(nt_object)
+      else:
+        raise Exception('Cannot download files in offline mode!')
     elif category == 'internal reference':
       if type_ == 'text':
         ref_object['attributes'].append(('reference_internal_case', value, ioc, share))
