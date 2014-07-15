@@ -356,6 +356,7 @@ def convert_event_to_simple_string(api_url, api_headers, events_xml):
   for event in events_xml.iterfind('./Event'):
     misp_dump = u''
     misp_dump += 40 * u'-'
+    misp_dump += u'\n'
 
     event_header = parse_event_header(event)
 
