@@ -70,6 +70,22 @@ analysis_id_map = {'0': 'Opened',
                    '2': 'Completed',
                    }
 
+'''
+MISP distribution attribute
+RED
+0 => 'Your organisation only',
+AMBER
+1 => 'This community only',
+2 => 'Connected communities',
+GREEN
+3 => 'All communities'
+'''
+distribution_to_tlp_map = {'0': 'red',
+                           '1': 'amber',
+                           '2': 'amber',
+                           '3': 'green'
+                           }
+
 
 def guess_hash_type(hash_):
   '''Supports md5, sha1, sha-256, sha-384, sha-512'''
@@ -175,6 +191,14 @@ def parse_event_header(event):
         event_header['risk'] = threat_level_id_map[e.text]
       elif h == 'analysis':
         event_header['analysis'] = analysis_id_map[e.text]
+
+  if not event_header.get('description', '') == '':
+    # it seems to be common practice to specify TLP level in the event description
+    m = re.search(r'tlp[\s:\-_]{0,}(red|amber|green|white)', event_header['description'], re.I)
+    if m:
+      event_header['tlp'] = m.group(1).lower()
+  else:
+    event_header['tlp'] = distribution_to_tlp_map[event_header['distribution']]
 
   return event_header
 
@@ -359,6 +383,10 @@ def convert_event_to_simple_string(api_url, api_headers, events_xml):
     misp_dump += u'\n'
 
     event_header = parse_event_header(event)
+
+    if 'risk' in event_header:
+      event_header['threat_level_id_map'] = event_header['risk']
+      del(event_header['risk'])
 
     for ht in header_tags:
       misp_dump += u'{0}: {1}\n'.format(ht.title(), event_header.get(ht, ''))

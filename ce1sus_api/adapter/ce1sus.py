@@ -43,19 +43,12 @@ ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                          }
 
 
-def create_event(event_header, tag, title_prefix='', tlp='amber'):
+def create_event(event_header, tag, title_prefix=''):
   event = RestEvent()
   event.title = u'{0}Event {1}'.format(title_prefix, event_header.get('id', ''))
   event.description = unicode(event_header.get('info', ''))
   event.first_seen = parser.parse(event_header.get('date'))
-  event.tlp = tlp
-
-  if not event.description == '':
-    # it seems to be common practice to specify TLP level in the event description
-    m = re.search(r'tlp[\s:\-_]{0,}(red|amber|green|white)', event.description, re.I)
-    if m:
-      event.tlp = m.group(1).lower()
-
+  event.tlp = event_header.get('tlp', 'amber')
   event.risk = event_header.get('risk', 'None')
 
   if not event.risk in ce1sus_risk_level:
