@@ -342,3 +342,51 @@ def parse_event_objects(event, api_url=None, api_headers=None):
     event_objects.append(ref_object)
 
   return event_objects
+
+
+def convert_event_to_simple_string(api_url, api_headers, events_xml):
+  # Generate a simple flat string dump
+
+  # we are only interested in a limited number of attributes
+  attribute_tags = ['type', 'category', 'value']
+  header_tags = ['info', 'risk', 'analysis', 'orgc', 'date', 'org', 'id', 'uuid', 'threat_level_id']
+
+  events = {}
+
+  for event in events_xml.iterfind('./Event'):
+    misp_dump = u''
+    misp_dump += 40 * u'-'
+
+    event_header = parse_event_header(event)
+
+    for ht in header_tags:
+      misp_dump += u'{0}: {1}\n'.format(ht.title(), event_header.get(ht, ''))
+
+    misp_dump += 40 * u'-'
+    misp_dump += u'\n\n'
+
+    xml_ev = fetch_event(api_url, api_headers, event_header['id'])
+    event = from_string(xml_ev)
+
+    event_objects = []
+
+    for attrib in event.iter(tag='Attribute'):
+      type_ = ''
+      value = ''
+      category = ''
+
+      for a in attribute_tags:
+        e = attrib.find(a)
+        if not e is None:
+          if e.tag == 'type':
+            type_ = e.text.lower()
+          elif e.tag == 'value':
+            value = e.text
+          elif e.tag == 'category':
+            category = e.text.lower()
+
+      misp_dump += u'{0}/{1}: {2}\n'.format(category, type_, value)
+
+    events[event_header['id']] = misp_dump.encode('utf-8')
+
+  return events
