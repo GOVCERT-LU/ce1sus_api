@@ -70,6 +70,22 @@ analysis_id_map = {'0': 'Opened',
                    '2': 'Completed',
                    }
 
+'''
+MISP distribution attribute
+RED
+0 => 'Your organisation only',
+AMBER
+1 => 'This community only',
+2 => 'Connected communities',
+GREEN
+3 => 'All communities'
+'''
+distribution_to_tlp_map = {'0': 'red',
+                           '1': 'amber',
+                           '2': 'amber',
+                           '3': 'green'
+                           }
+
 
 def guess_hash_type(hash_):
   '''Supports md5, sha1, sha-256, sha-384, sha-512'''
@@ -96,9 +112,30 @@ def fetch_event_list(api_url, api_headers, limit=25):
 
   req = urllib2.Request(url, None, api_headers)
   resp = urllib2.urlopen(req).read()
-  xml = et.fromstring(resp)
 
-  return xml
+  return resp
+
+
+def parse_event_list(xml_string):
+  xml = from_string(xml_string)
+
+  event_list = {}
+
+  for event in xml.iter(tag='Event'):
+    a = event.find('id')
+
+    if not a is None:
+      if not a.text in event_list:
+        event_list[a.text] = {}
+      else:
+        raise ValueError('Event collision, API returned the same event twice, should not happne!')
+
+      event_id = a.text
+
+      for a in event:
+        event_list[event_id][a.tag] = a.text
+
+  return event_list
 
 
 def fetch_event(api_url, api_headers, event_id):
@@ -154,6 +191,14 @@ def parse_event_header(event):
         event_header['risk'] = threat_level_id_map[e.text]
       elif h == 'analysis':
         event_header['analysis'] = analysis_id_map[e.text]
+
+  if not event_header.get('description', '') == '':
+    # it seems to be common practice to specify TLP level in the event description
+    m = re.search(r'tlp[\s:\-_]{0,}(red|amber|green|white)', event_header['description'], re.I)
+    if m:
+      event_header['tlp'] = m.group(1).lower()
+  else:
+    event_header['tlp'] = distribution_to_tlp_map[event_header['distribution']]
 
   return event_header
 
@@ -256,6 +301,22 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         ref_object['children'].append(ref_doc_object)
       else:
         raise Exception('Cannot download files in offline mode!')
+    elif category == 'network activity' and type_ == 'attachment' and value.lower().endswith('.pcap'):
+      if not (api_url is None and api_headers is None):
+        try:
+          data = fetch_attachment(api_url, api_headers, id_)
+        except urllib2.HTTPError:
+          print 'Failed to download file "{0}" id:{1}'.format(value, id_)
+          continue
+          raise
+
+        ce1sus_file = ce1sus_api.api.restclasses.Ce1susWrappedFile(str_=data, name=value)
+
+        nt_object = {'type': 'network_traffic', 'attributes': []}
+        nt_object['attributes'].append(('raw_pcap_file', ce1sus_file, 0, share))
+        event_objects.append(nt_object)
+      else:
+        raise Exception('Cannot download files in offline mode!')
     elif category == 'internal reference':
       if type_ == 'text':
         ref_object['attributes'].append(('reference_internal_case', value, ioc, share))
@@ -305,3 +366,56 @@ def parse_event_objects(event, api_url=None, api_headers=None):
     event_objects.append(ref_object)
 
   return event_objects
+
+
+def convert_event_to_simple_string(api_url, api_headers, events_xml):
+  # Generate a simple flat string dump
+
+  # we are only interested in a limited number of attributes
+  attribute_tags = ['type', 'category', 'value']
+  header_tags = ['info', 'risk', 'analysis', 'orgc', 'date', 'org', 'id', 'uuid', 'threat_level_id']
+
+  events = {}
+
+  for event in events_xml.iterfind('./Event'):
+    misp_dump = u''
+    misp_dump += 40 * u'-'
+    misp_dump += u'\n'
+
+    event_header = parse_event_header(event)
+
+    if 'risk' in event_header:
+      event_header['threat_level_id_map'] = event_header['risk']
+      del(event_header['risk'])
+
+    for ht in header_tags:
+      misp_dump += u'{0}: {1}\n'.format(ht.title(), event_header.get(ht, ''))
+
+    misp_dump += 40 * u'-'
+    misp_dump += u'\n\n'
+
+    xml_ev = fetch_event(api_url, api_headers, event_header['id'])
+    event = from_string(xml_ev)
+
+    event_objects = []
+
+    for attrib in event.iter(tag='Attribute'):
+      type_ = ''
+      value = ''
+      category = ''
+
+      for a in attribute_tags:
+        e = attrib.find(a)
+        if not e is None:
+          if e.tag == 'type':
+            type_ = e.text.lower()
+          elif e.tag == 'value':
+            value = e.text
+          elif e.tag == 'category':
+            category = e.text.lower()
+
+      misp_dump += u'{0}/{1}: {2}\n'.format(category, type_, value)
+
+    events[event_header['id']] = misp_dump.encode('utf-8')
+
+  return events

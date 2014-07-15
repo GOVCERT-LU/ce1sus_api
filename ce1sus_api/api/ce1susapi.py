@@ -240,13 +240,13 @@ class Ce1susAPI(object):
       raise Ce1susAPIException(('Object definition does not implement '
                                 + 'RestClass').format(definition))
 
-  def load_definitions(self, cache=True, definitions_file=None):
+  def load_definitions(self, cache=True, definitions_file=None, force=False):
     ret = {}
 
     if cache and definitions_file is None:
       raise Ce1susAPIException('If you want to cache the definitions, you need to specify a valid cache-file path')
 
-    if cache and not definitions_file is None and os.path.isfile(definitions_file):
+    if cache and not definitions_file is None and os.path.isfile(definitions_file) and not force:
       with open(definitions_file, 'rb') as f:
         defs_json = f.read()
 
