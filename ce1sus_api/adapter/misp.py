@@ -337,9 +337,6 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         overriden_type = True
       elif type_ == 'other':
         type_ = 'text'
-      elif type_ == 'ipv4_add' and ':' in value:
-        type_ = 'ipv6_addr'
-        overriden_type = True
       elif not type_ in attribute_map and not type_ in ce1sus_api.adapter.ce1sus.ce1sus_attr_checksums and ' ' in type_:
         tmp_type = type_.replace(' ', '_')
 
@@ -360,6 +357,9 @@ def parse_event_objects(event, api_url=None, api_headers=None):
           print u'Value: "{0}"'.format(value)
 
           raise Exception('Invalid type')
+
+      if type_ == 'ipv4_addr' and ':' in value:
+        type_ = 'ipv6_addr'
 
       ioc_object['attributes'].append((type_, value, ioc, share))
 
