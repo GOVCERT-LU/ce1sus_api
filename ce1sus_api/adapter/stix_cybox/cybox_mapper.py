@@ -245,7 +245,6 @@ class CyboxMapper(object):
 
   def get_blank_email_message(self):
     email = EmailMessage()
-    email.attachments = Attachments()
     return email
 
   def get_time(self, start_time=None, end_time=None, produced_time=None, received_time=None):
