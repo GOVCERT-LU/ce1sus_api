@@ -33,7 +33,7 @@ def convert_string_to_value(string):
       return_value = ValueConverter.set_date(string)
     # TODO: rework i.e. val = int: value or similar
     elif (re.match(r'^\[.*\]$', string, re.MULTILINE) is not None or
-      re.match(r'^\{.*\}$', string, re.MULTILINE) is not None):
+          re.match(r'^\{.*\}$', string, re.MULTILINE) is not None):
       try:
         return_value = ast.literal_eval(string)
       except SyntaxError:

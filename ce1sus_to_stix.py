@@ -64,7 +64,7 @@ if __name__ == '__main__':
   stix_convcerter = StixConverter(ce1sushost)
 
   stix_xml = stix_convcerter.create_stix_xml(event)
-  print stix_xml
+  # print stix_xml
   xmlfile = open('Event-{0}.xml'.format(options.event_uuid), 'w')
   xmlfile.write(stix_xml)
   xmlfile.close()

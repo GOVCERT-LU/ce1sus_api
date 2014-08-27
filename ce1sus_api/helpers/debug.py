@@ -64,7 +64,7 @@ class Log(object):
       max_bytes = getattr(logger, "rot_maxBytes", log_file_size)
       backup_count = getattr(logger, "rot_backupCount", nbr_backups)
       file_rotater = RotatingFileHandler(self.log_file, 'a', max_bytes,
-                                        backup_count)
+                                         backup_count)
       file_rotater.setLevel(self.log_lvl)
       file_rotater.setFormatter(self.__formatter)
       logger.addHandler(file_rotater)

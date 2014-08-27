@@ -20,11 +20,11 @@ from cybox.objects.code_object import Code
 from cybox.objects.user_account_object import UserAccount
 from cybox.objects.win_registry_key_object import WinRegistryKey
 from cybox.objects.domain_name_object import DomainName
-from cybox.core import Observable, ObservableComposition, Observables, Object, Event
+from cybox.core import Observable, ObservableComposition
 from cybox.common.time import Time
-from cybox.common import Hash
 from cybox.objects.address_object import EmailAddress
 from ce1sus_api.adapter.stix_cybox.common import CyboxMapperException
+from cybox.objects.artifact_object import Artifact, Base64Encoding
 
 
 OPERATOR_OR = ObservableComposition.OPERATOR_OR
@@ -37,15 +37,16 @@ class CyboxMapper(object):
                     'hostname': Hostname,
                     'url': URI,
                     'win_registry_key': WinRegistryKey,
-                    'domain': DomainName
+                    'domain': DomainName,
+                    'url_path': URI
                     }
 
-  def create_observable(self, object, cybox_object):
+  def create_observable(self, obj, cybox_object):
     # observable_composition = ObservableComposition(ObservableComposition.OPERATOR_OR)
     observable = Observable(cybox_object)
     # observable.observable_composition = observable_composition
-    observable.title = object.definition.name
-    observable.id_ = 'ce1sus:Observable-{0}'.format(object.uuid)
+    observable.title = obj.definition.name
+    observable.id_ = 'ce1sus:Observable-{0}'.format(obj.uuid)
     return observable
 
   def create_observable_cybox(self, obj):
@@ -55,7 +56,7 @@ class CyboxMapper(object):
     # TODO include operators
     composition.operator = 'OR'
     composition.id_ = 'ce1sus:ObjectCompsition-{0}'.format(obj.uuid)
-    if  obj.attributes:
+    if obj.attributes:
       for attr in obj.attributes:
           cybox_obj = self.create_email_cybox(obj)
           attr_observable = self.create_observable(attr, cybox_obj)
@@ -66,12 +67,14 @@ class CyboxMapper(object):
 
   def create_generic_cybox(self, attribute):
     # This creates a cybox object for the attributes where a one to one mapping is possible
-    clazz = CyboxMapper.DIRECT_MAPPING.get(attribute.definition.name, None)
+    definition = attribute.definition.name
+    clazz = CyboxMapper.DIRECT_MAPPING.get(definition, None)
     if clazz:
       instance = clazz()
       instance.value = attribute.value
       return instance
-    return None
+    else:
+      raise CyboxMapperException(u'Direct mapping of "{0}" is not defined'.format(definition))
 
   def set_check_attr(self, cybox_obj, proerty_name, value,):
     # TODO make this correct
@@ -134,16 +137,23 @@ class CyboxMapper(object):
         self.set_check_attr(cybox_file, 'file_extension', attribute.value)
         cybox_file.file_extension.condition = "Equals"
       elif def_name == 'raw_file':
-        print "raw_file is not supported"
+        cybox_file = self.create_raw_file(cybox_file, attribute)
       elif def_name == 'mime_type':
-        print "raw_file is not supported"
+        print 'mime_type is not supported'
       elif def_name == 'file_id':
-        print "raw_file is not supported"
+        print 'file_id is not supported'
       else:
         raise CyboxMapperException('Not defined for {0}'.format(def_name))
       return cybox_file
     else:
       return None
+
+  def create_raw_file(self, cybox_file, obj):
+    # create package
+    artifact = Artifact(data=obj.value[1], type_='File')
+    # artifact.packaging.append(ZlibCompression())
+    artifact.packaging.append(Base64Encoding())
+    return artifact
 
   def create_email_cybox(self, cybox_file, obj, attribute):
     # returns a cybox email object out of a ce1sus object
@@ -251,4 +261,6 @@ class CyboxMapper(object):
     return Time(start_time, end_time, produced_time, received_time)
 
   def get_blank_file(self):
-    return File()
+    file_obj = File()
+
+    return file_obj
