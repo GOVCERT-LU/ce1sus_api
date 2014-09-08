@@ -57,7 +57,8 @@ attribute_map = {'domain': 'domain',
                  'pattern-in-file': 'file_content_pattern',
                  'target-org': 'targeted_organization',
                  'regkey|value': 'win_registry_key',
-		 'target-machine': 'comment',
+		             'target-machine': 'comment',
+                 'target-location':'observable_location',
                  }
 
 threat_level_id_map = {'1': 'High',
