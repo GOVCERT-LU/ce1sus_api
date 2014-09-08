@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-import os
 import ntpath
 import posixpath
 import urllib2
 import xml.etree.ElementTree as et
 import ce1sus_api.adapter.ce1sus
 import ce1sus_api.api.restclasses
+import re
 
 
 __author__ = 'Georges Toth'
@@ -57,8 +57,8 @@ attribute_map = {'domain': 'domain',
                  'pattern-in-file': 'file_content_pattern',
                  'target-org': 'targeted_organization',
                  'regkey|value': 'win_registry_key',
-		             'target-machine': 'comment',
-                 'target-location':'observable_location',
+                 'target-machine': 'comment',
+                 'target-location': 'observable_location',
                  }
 
 threat_level_id_map = {'1': 'High',
@@ -126,8 +126,8 @@ def parse_event_list(xml_string):
   for event in xml.iter(tag='Event'):
     a = event.find('id')
 
-    if not a is None:
-      if not a.text in event_list:
+    if a is not None:
+      if a.text not in event_list:
         event_list[a.text] = {}
       else:
         raise ValueError('Event collision, API returned the same event twice, should not happne!')
@@ -174,7 +174,7 @@ def parse_events(xml, misp_tag, api_url, api_headers):
     rest_event = ce1sus_api.adapter.ce1sus.create_event(event_header, misp_tag, title_prefix='MISP ')
 
     if len(event_attributes) > 0:
-      rest_event.objects += ce1sus_api.adapter.ce1sus.create_objects(event_attributes)
+      rest_event.objects += ce1sus_api.adapter.ce1sus.create_objects(event_attributes, rest_event.group)
 
     rest_events.append(rest_event)
 
@@ -183,10 +183,9 @@ def parse_events(xml, misp_tag, api_url, api_headers):
 
 def parse_event_header(event):
   event_header = {}
-
   for h in header_tags:
     e = event.find(h)
-    if not e is None and not e.tag in event_header:
+    if e is not None and e.tag not in event_header:
       event_header[e.tag] = e.text
 
       if h == 'threat_level_id':
@@ -222,7 +221,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
 
     for a in attribute_tags:
       e = attrib.find(a)
-      if not e is None:
+      if e is not None:
         if e.tag == 'type':
           type_ = e.text.lower()
         elif e.tag == 'value':
@@ -261,7 +260,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
       else:
         filename = value
 
-      if not hash_type is None:
+      if hash_type is not None:
         type_ = attribute_map[hash_type]
         gf_object['attributes'].append((type_, hash_value, ioc, share))
 
@@ -282,7 +281,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         data = None
         print u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
 
-      if not data is None:
+      if data is not None:
         ce1sus_file = ce1sus_api.api.restclasses.Ce1susWrappedFile(str_=data, name=filename)
         gf_object['attributes'].append(('raw_file', ce1sus_file, 0, share))
 
@@ -334,12 +333,12 @@ def parse_event_objects(event, api_url=None, api_headers=None):
 
       if type_ == 'snort':
         value = u'snort:{0}'.format(value)
-      elif type_ == 'url' and not '://' in value:
+      elif type_ == 'url' and '://' not in value:
         type_ = 'url_path'
         overriden_type = True
       elif type_ == 'other':
         type_ = 'text'
-      elif not type_ in attribute_map and not type_ in ce1sus_api.adapter.ce1sus.ce1sus_attr_checksums and ' ' in type_:
+      elif type_ not in attribute_map and type_ not in ce1sus_api.adapter.ce1sus.ce1sus_attr_checksums and ' ' in type_:
         tmp_type = type_.replace(' ', '_')
 
         if tmp_type in attribute_map or tmp_type in ce1sus_api.adapter.ce1sus.ce1sus_attr_checksums:
@@ -411,7 +410,7 @@ def convert_event_to_simple_string(api_url, api_headers, events_xml):
 
       for a in attribute_tags:
         e = attrib.find(a)
-        if not e is None:
+        if e is not None:
           if e.tag == 'type':
             type_ = e.text.lower()
           elif e.tag == 'value':

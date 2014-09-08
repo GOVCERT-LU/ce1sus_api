@@ -6,7 +6,8 @@ import re
 from dateutil import parser
 
 from ce1sus_api.api.ce1susapi import Ce1susAPI, Ce1susAPIException, Ce1susForbiddenException, Ce1susNothingFoundException, Ce1susAPIConnectionException
-from ce1sus_api.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition
+from ce1sus_api.api.restclasses import RestEvent, RestObject, RestObjectDefinition, RestAttribute, RestAttributeDefinition, \
+  RestGroup
 
 
 __author__ = 'Georges Toth'
@@ -51,12 +52,12 @@ def create_event(event_header, tag, title_prefix=''):
   event.tlp = event_header.get('tlp', 'amber')
   event.risk = event_header.get('risk', 'None')
 
-  if not event.risk in ce1sus_risk_level:
+  if event.risk not in ce1sus_risk_level:
     event.risk = 'None'
 
   event.analysis = event_header.get('analysis', 'None')
 
-  if not event.analysis in ce1sus_analysis_level:
+  if event.analysis not in ce1sus_analysis_level:
     event.analysis = 'None'
 
   event.objects = []
@@ -64,12 +65,23 @@ def create_event(event_header, tag, title_prefix=''):
   event.published = event_header.get('published', '1')
   event.status = u'Confirmed'
 
+  # Gather group
+  creator_name = event_header.get('org', None)
+  if creator_name:
+    creator = RestGroup()
+    creator.name = creator_name
+  else:
+    creator = None
+
+  event.group = creator
+
   obj = RestObject()
   obj.definition = RestObjectDefinition()
   obj.definition.chksum = ce1sus_obj_checksums['references']
   obj.attributes = []
   obj.parent = None
   obj.children = []
+  obj.group = creator
 
   if not event_header.get('id', '') == '':
     attribute = RestAttribute()
@@ -78,7 +90,7 @@ def create_event(event_header, tag, title_prefix=''):
     attribute.value = u'{0}{1} Event ID {2}'.format(title_prefix, tag, event_header.get('id', ''))
     attribute.ioc = 0
     attribute.share = 0
-
+    attribute.group = creator
     obj.attributes.append(attribute)
 
   if not event_header.get('uuid', '') == '':
@@ -88,7 +100,7 @@ def create_event(event_header, tag, title_prefix=''):
     attribute.value = u'{0}{1} Event UUID {2}'.format(title_prefix, tag, event_header.get('uuid', ''))
     attribute.ioc = 0
     attribute.share = 0
-
+    attribute.group = creator
     obj.attributes.append(attribute)
 
   if len(obj.attributes) > 0:
@@ -97,23 +109,24 @@ def create_event(event_header, tag, title_prefix=''):
   return event
 
 
-def create_objects(objects):
+def create_objects(objects, creator):
   ce1sus_objects = []
 
   for a in objects:
-    obj = create_object(a)
+    obj = create_object(a, creator)
     ce1sus_objects.append(obj)
 
   return ce1sus_objects
 
 
-def create_object(object_struct, object_type='ioc_records'):
+def create_object(object_struct, creator, object_type='ioc_records'):
   obj = RestObject()
   obj.definition = RestObjectDefinition()
   obj.definition.chksum = ce1sus_obj_checksums[object_struct.get('type')]
   obj.attributes = []
   obj.parent = None
   obj.children = []
+  obj.group = creator
 
   for a in object_struct['attributes']:
     type_, value, ioc, share = a
@@ -128,12 +141,12 @@ def create_object(object_struct, object_type='ioc_records'):
     attribute.value = value
     attribute.ioc = ioc
     attribute.share = share
-
+    attribute.group = creator
     obj.attributes.append(attribute)
 
   if 'children' in object_struct:
     for c in object_struct['children']:
-      child = create_object(c)
+      child = create_object(c, creator)
       obj.children.append(child)
 
   return obj
