@@ -51,6 +51,7 @@ def create_event(event_header, tag, title_prefix=''):
   event.first_seen = parser.parse(event_header.get('date'))
   event.tlp = event_header.get('tlp', 'amber')
   event.risk = event_header.get('risk', 'None')
+  event.uuid = event_header.get('uuid', None)
 
   if event.risk not in ce1sus_risk_level:
     event.risk = 'None'

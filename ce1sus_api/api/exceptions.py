@@ -29,6 +29,21 @@ class Ce1susNothingFoundException(Ce1susAPIException):
   pass
 
 
+class Ce1susDouplicateFoundException(Ce1susAPIException):
+  """ Ce1susNothingFoundException """
+  pass
+
+
+class Ce1susDefinitionNotFoundException(Ce1susAPIException):
+  """ Ce1susNothingFoundException """
+  pass
+
+
+class Ce1susConversionException(Ce1susAPIException):
+  """ Ce1susNothingFoundException """
+  pass
+
+
 class Ce1susUndefinedException(Ce1susAPIException):
   """ Ce1susUndefinedException """
   pass

@@ -5,19 +5,14 @@ __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
-import os
-import json
-import requests
-from ce1sus_api.api.exceptions import Ce1susAPIException, \
-                                  Ce1susForbiddenException, \
-                                  Ce1susNothingFoundException, \
-                                  Ce1susUndefinedException, \
-                                  Ce1susUnkownDefinition, \
-                                  Ce1susInvalidParameter, \
-                                  Ce1susAPIConnectionException
 from ce1sus_api.api.common import JSONConverter, JSONException
-from ce1sus_api.api.restclasses import RestClass
 from ce1sus_api.api.dictconverter import DictConverter, DictConversionException
+from ce1sus_api.api.exceptions import Ce1susAPIException, Ce1susForbiddenException, Ce1susDouplicateFoundException, Ce1susNothingFoundException, Ce1susUndefinedException, Ce1susUnkownDefinition, Ce1susInvalidParameter, Ce1susAPIConnectionException, \
+  Ce1susConversionException, Ce1susDefinitionNotFoundException
+from ce1sus_api.api.restclasses import RestClass
+import json
+import os
+import requests
 from types import DictType
 
 
@@ -60,6 +55,12 @@ class Ce1susAPI(object):
       raise Ce1susInvalidParameter(message)
     elif errorClass == 'UnknownDefinitionException':
       raise Ce1susUnkownDefinition(message)
+    elif errorClass == 'DouplicateFoundException':
+      raise Ce1susDouplicateFoundException(message)
+    elif errorClass == 'DefinitionNotFoundException':
+      raise Ce1susDefinitionNotFoundException(message)
+    elif errorClass == 'ConversionException':
+      raise Ce1susConversionException(message)
     else:
       raise Ce1susUndefinedException(errorMessage)
 
@@ -74,11 +75,11 @@ class Ce1susAPI(object):
           headers[key] = value
       if data:
         request = requests.post(url,
-                               data=self.json_converter.generate_json(data),
-                               headers=headers,
-                               proxies=self.proxies,
-                               verify=self.verify_ssl,
-                               cert=self.ssl_cert)
+                                data=self.json_converter.generate_json(data),
+                                headers=headers,
+                                proxies=self.proxies,
+                                verify=self.verify_ssl,
+                                cert=self.ssl_cert)
       else:
         request = requests.get(url,
                                headers=headers,
@@ -114,7 +115,7 @@ class Ce1susAPI(object):
     headers = {'fulldefinitions': withDefinition}
 
     rest_event = self.__request('/event/{0}'.format(uuid),
-                            None, headers)
+                                None, headers)
     return rest_event
 
   def insert_event(self, event, withDefinition=False, mkrelations=True):
@@ -132,12 +133,12 @@ class Ce1susAPI(object):
                                 + 'RestClass').format(event))
 
   def get_events(self,
-                startDate=None,
-                endDate=None,
-                offset=0,
-                limit=20,
-                withDefinition=False,
-                uuids=list()):
+                 startDate=None,
+                 endDate=None,
+                 offset=0,
+                 limit=20,
+                 withDefinition=False,
+                 uuids=list()):
     headers = {'fulldefinitions': withDefinition,
                'uuids': uuids
                }
@@ -159,7 +160,7 @@ class Ce1susAPI(object):
                }
 
     reat_att_def = self.__request('/definitions/attributes'.format(chksums),
-                            None, headers)
+                                  None, headers)
     return reat_att_def
 
   def get_object_definitions(self, chksums=list(), withDefinition=False):
@@ -168,16 +169,16 @@ class Ce1susAPI(object):
                }
 
     reat_obj_def = self.__request('/definitions/objects'.format(chksums),
-                            None, headers)
+                                  None, headers)
     return reat_obj_def
 
   def search_events_uuid(self,
-                   objectType,
-                   objectContainsAttribute=list(),
-                   startDate=None,
-                   endDate=None,
-                   offset=0,
-                   limit=20):
+                         objectType,
+                         objectContainsAttribute=list(),
+                         startDate=None,
+                         endDate=None,
+                         offset=0,
+                         limit=20):
     headers = {'attributes': objectContainsAttribute,
                'objecttype': objectType,
                }
@@ -194,14 +195,14 @@ class Ce1susAPI(object):
     return result
 
   def search_attributes(self,
-                       objectType=None,
-                       objectContainsAttribute=list(),
-                       filterAttributes=list(),
-                       startDate=None,
-                       endDate=None,
-                       offset=0,
-                       limit=20,
-                       withDefinition=False):
+                        objectType=None,
+                        objectContainsAttribute=list(),
+                        filterAttributes=list(),
+                        startDate=None,
+                        endDate=None,
+                        offset=0,
+                        limit=20,
+                        withDefinition=False):
     headers = {'fulldefinitions': withDefinition,
                'attributes': objectContainsAttribute,
                'objecttype': objectType,
@@ -246,7 +247,7 @@ class Ce1susAPI(object):
     if cache and definitions_file is None:
       raise Ce1susAPIException('If you want to cache the definitions, you need to specify a valid cache-file path')
 
-    if cache and not definitions_file is None and os.path.isfile(definitions_file) and not force:
+    if cache and definitions_file is not None and os.path.isfile(definitions_file) and not force:
       with open(definitions_file, 'rb') as f:
         defs_json = f.read()
 
