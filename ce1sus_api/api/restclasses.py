@@ -139,6 +139,13 @@ class RestObject(RestClass):
     self.created = None
     self.modified = None
     self.group = None
+    self.title = None
+
+  def name(self):
+    if self.title:
+      return self.title
+    else:
+      return self.definition.name
 
   def to_dict(self):
     result = dict()
@@ -163,6 +170,7 @@ class RestObject(RestClass):
     result[self.get_classname()]['created'] = RestClass.convert_value(self.created)
     result[self.get_classname()]['modified'] = RestClass.convert_value(self.modified)
     result[self.get_classname()]['parent'] = RestClass.convert_value(self.parent)
+    result[self.get_classname()]['title'] = RestClass.convert_value(self.title)
     return result
 
 

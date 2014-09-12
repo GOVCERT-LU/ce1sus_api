@@ -20,5 +20,9 @@ class CyboxMapperException(MapperException):
   pass
 
 
+class CyboxMapperDepricatedException(MapperException):
+  pass
+
+
 class StixMapperException(MapperException):
   pass
