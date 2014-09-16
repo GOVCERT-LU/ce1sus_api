@@ -110,8 +110,14 @@ def create_event(event_header, tag, title_prefix=''):
   return event
 
 
-def create_objects(objects, creator):
+def create_objects(objects, creator_name=''):
   ce1sus_objects = []
+
+  if creator_name == '':
+    creator = RestGroup()
+    creator.name = creator_name
+  else:
+    creator = None
 
   for a in objects:
     obj = create_object(a, creator)
