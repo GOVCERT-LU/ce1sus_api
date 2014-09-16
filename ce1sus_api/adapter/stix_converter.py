@@ -10,7 +10,7 @@ __author__ = 'Weber Jean-Paul'
 __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
-from ce1sus_api.adapter.stix_cybox.stix_mapper import StixMapper
+from ce1sus_api.adapter.stix_cybox.ce1sus_stix_mapper import StixMapper
 import cybox.utils.idgen
 from cybox.utils.nsparser import Namespace
 import stix.utils.idgen
@@ -27,5 +27,5 @@ class StixConverter(object):
     stix_package = self.stix_mapper.create_stix_package(event)
     return stix_package.to_xml()
 
-
-
+  def create_ce1sus_event(self, stix):
+    pass

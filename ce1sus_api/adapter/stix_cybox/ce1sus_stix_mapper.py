@@ -5,36 +5,33 @@
 
 Created on Aug 1, 2014
 """
-from ce1sus_api.adapter.stix_cybox.common import StixMapperException
-from ce1sus_api.adapter.stix_cybox.cybox_mapper import CyboxMapper, OPERATOR_OR
-from datetime import datetime
-from dateutil.tz import tzutc
+from ce1sus_api.adapter.stix_cybox.common import StixMapperException, CyboxNotMappableException
+from ce1sus_api.adapter.stix_cybox.ce1sus_cybox_mapper import CyboxMapper, OPERATOR_OR
+import uuid
 
-from cybox.core.object import Object
-from cybox.core.observable import Observable
-from cybox.objects.artifact_object import Artifact
+from cybox.core.observable import ObservableComposition
+from cybox.objects.address_object import Address
 from cybox.objects.email_message_object import Attachments
-from stix.common import StructuredText, VocabString, InformationSource, Statement, Identity, RelatedObservable
+from cybox.objects.file_object import File
+from cybox.objects.uri_object import URI
+from stix.common import InformationSource, Identity
 from stix.common.confidence import Confidence
-from stix.common.related import RelatedTTP
 from stix.core import STIXPackage, STIXHeader
 from stix.data_marking import Marking, MarkingSpecification
 from stix.extensions.marking.tlp import TLPMarkingStructure
-from stix.incident import Incident
-from stix.incident.time import Time as StixTime
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
-from stix.ttp.infrastructure import Infrastructure
 from stix.ttp.malware_instance import MalwareInstance
-from stix.ttp.resource import Resource
-import uuid
 
 
 __author__ = 'Weber Jean-Paul'
 __email__ = 'jean-paul.weber@govcert.etat.lu'
 __copyright__ = 'Copyright 2013, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
+
+
+INDICATOR_OBS_RELATION = "Child_Of"
 
 
 class StixMapper(object):
@@ -58,7 +55,7 @@ class StixMapper(object):
       self.seen_uuids[obj.uuid] = True
       return self.cybox_mapper.create_observable(obj.definition.name, obj.uuid, cybox_obj)
 
-  def create_email(self, stix_package, obj, parent=None, indicator_parent=None, parent_child_relation=None):
+  def create_email(self, stix_package, obj, parent=None, indicator_parent=None):
     # Create observable composition with email and its children
     if 'email' in obj.definition.name:
       ttp = None
@@ -73,7 +70,7 @@ class StixMapper(object):
         if attr.definition.name == 'email_type':
           ttp = self.create_ttp(attr.value)
         else:
-          self.cybox_mapper.populate_email_cybox(cybox_email, obj, attr)
+          self.cybox_mapper.populate_email_cybox(cybox_email, attr)
 
       email_observable = self.create_observable(obj, cybox_email)
       stix_package.add_observable(email_observable)
@@ -82,38 +79,39 @@ class StixMapper(object):
       indicator_observables = list()
       for attr in iocs:
         cybox_obj = self.cybox_mapper.get_blank_email_message()
-        self.cybox_mapper.populate_email_cybox(cybox_obj, obj, attr)
+        self.cybox_mapper.populate_email_cybox(cybox_obj, attr)
         observable = self.create_observable(attr, cybox_obj)
-        cybox_obj.add_related(cybox_email, "Related_To", inline=False)
+        cybox_obj.add_related(cybox_email, INDICATOR_OBS_RELATION, inline=False)
         indicator_observables.append(observable)
 
       # self.__post_processing(obj, cybox_obj, "Malicious E-mail", "Contained_Within", stix_package, indicator_observables, ttp, indicator_parent, cybox_parent_relation_tuple)
-      self.__post_processing(obj, cybox_email, ttp, stix_package, indicator_observables, "Malicious E-mail", indicator_parent, "Contains")
-      self.__set_parent_child_relation(parent, cybox_email, parent_child_relation)
-      return True
+      self.__post_processing(obj, cybox_email, ttp, stix_package, indicator_observables, "Malicious E-mail", indicator_parent)
+      self.__set_parent_child_relation(parent, cybox_email)
+      return cybox_email
     else:
-      return False
+      return None
 
-  def create_file(self, stix_package, obj, parent=None, indicator_parent=None, parent_child_relation=None):
+  def create_file(self, stix_package, obj, parent=None, indicator_parent=None):
     if 'file' in obj.definition.name:
       malware = None
       # there is a file attached create cybox file
       cybox_file = self.cybox_mapper.get_blank_file()
       iocs = list()
       # create email observable and extract iocs
-      for attr in obj.attributes:
-        if attr.ioc == '1' or attr.ioc == 1:
-          iocs.append(attr)
-        if attr.definition.name == 'malware_type' or attr.definition.name == 'malware_name':
-          if not malware:
-            malware = MalwareInstance()
-          if attr.definition.name == 'malware_name':
-            malware.title = attr.value
-            malware.add_name(attr.value)
-          if attr.definition.name == 'malware_type':
-            malware.add_type(attr.value)
-        else:
-          self.cybox_mapper.populate_file_cybox(cybox_file, obj, attr)
+      if obj.attributes:
+        for attr in obj.attributes:
+          if attr.ioc == '1' or attr.ioc == 1:
+            iocs.append(attr)
+          if attr.definition.name == 'malware_type' or attr.definition.name == 'malware_name':
+            if not malware:
+              malware = MalwareInstance()
+            if attr.definition.name == 'malware_name':
+              malware.title = attr.value
+              malware.add_name(attr.value)
+            if attr.definition.name == 'malware_type':
+              malware.add_type(attr.value)
+          else:
+            self.cybox_mapper.populate_file_cybox(cybox_file, attr)
 
       if parent:
         if hasattr(parent, 'attachments'):
@@ -132,31 +130,31 @@ class StixMapper(object):
       indicator_observables = list()
       for attr in iocs:
         cybox_obj = self.cybox_mapper.get_blank_file()
-        self.cybox_mapper.populate_file_cybox(cybox_obj, obj, attr)
+        self.cybox_mapper.populate_file_cybox(cybox_obj, attr)
         observable1 = self.create_observable(attr, cybox_obj)
-        cybox_obj.add_related(cybox_file, "Extracted_From", inline=False)
+        cybox_obj.add_related(cybox_file, INDICATOR_OBS_RELATION, inline=False)
         indicator_observables.append(observable1)
 
       # self.__post_processing(obj, cybox_file, "Malware Artifacts", "Extracted_from", stix_package, indicator_observables, ttp, indicator_parent, (cybox_file, "Related_To"))
-      self.__post_processing(obj, cybox_file, ttp, stix_package, indicator_observables, "Malware Artifacts", indicator_parent, "Extracted_From")
-      self.__set_parent_child_relation(parent, cybox_file, parent_child_relation)
-      return True
+      self.__post_processing(obj, cybox_file, ttp, stix_package, indicator_observables, "Malware Artifacts", indicator_parent)
+      self.__set_parent_child_relation(parent, cybox_file)
+      return cybox_file
     else:
-      return False
+      return None
 
-  def __set_parent_child_relation(self, parent, child, parent_child_relation):
+  def __set_parent_child_relation(self, parent, child):
     if parent:
+      parent_child_relation = self.cybox_mapper.get_relation(parent, child)
       parent.parent.add_related(child, parent_child_relation, inline=False)
       child.parent.add_related(parent, self.cybox_mapper.get_inverse_relation(parent_child_relation), inline=False)
 
-  def __post_processing(self, obj, cybox_obj, ttp, stix_package, indicator_observables, indicator_type, indicator_parent, parent_child_relation):
+  def __post_processing(self, obj, cybox_obj, ttp, stix_package, indicator_observables, indicator_type, indicator_parent):
     """
     Last steps to be taken for all objects
     """
     # if ttp add
     if ttp:
         stix_package.add_ttp(ttp)
-
     indicator = None
     # create found indicators
     if indicator_observables:
@@ -170,16 +168,17 @@ class StixMapper(object):
       if indicator_parent:
         indicator_parent.add_related_indicator(Indicator(idref=indicator.id_))
       stix_package.add_indicator(indicator)
-
-    # search for their children
-    if obj.children:
-      for child in obj.children:
-        detected = self.create_stix_object(stix_package, child, cybox_obj, indicator, parent_child_relation)
-        if not detected:
-          raise Exception('"{0}" child not mappable of object "{1}"'.format(child.name, obj.name))
-    # Create observable out of object
-    observable = self.create_observable(obj, cybox_obj)
-    stix_package.add_observable(observable)
+    if obj:
+      # search for their children
+      if obj.children:
+        for child in obj.children:
+          stix_object = self.create_stix_object(stix_package, child, cybox_obj, indicator)
+          if not stix_object:
+            raise Exception('"{0}" child not mappable of object "{1}"'.format(child.name, obj.name))
+    if cybox_obj:
+      # Create observable out of object
+      observable = self.create_observable(obj, cybox_obj)
+      stix_package.add_observable(observable)
 
   def set_properties(self, stix_indicator, attribute):
     valid_time = ValidTime(start_time=attribute.created, end_time=attribute.created)
@@ -190,48 +189,106 @@ class StixMapper(object):
     stix_indicator.add_valid_time_position(valid_time)
     stix_indicator.confidence = confidence
 
-  def create_ioc_records(self, stix_package, obj, parent=None, indicator_parent=None, parent_child_relation=None):
+  def create_ioc_records(self, stix_package, obj, parent=None, indicator_parent=None):
+    # create a composed attribute for IOC and Observables
+    ioc_comp_obs = ObservableComposition()
+    ioc_comp_obs.operator = ObservableComposition.OPERATOR_OR
+    fh_comp_obs = ObservableComposition()
+    fh_comp_obs.operator = ObservableComposition.OPERATOR_OR
+
+    dom_comp_obs = ObservableComposition()
+    dom_comp_obs.operator = ObservableComposition.OPERATOR_OR
+
+    ip_comp_obs = ObservableComposition()
+    ip_comp_obs.operator = ObservableComposition.OPERATOR_OR
+
+    url_comp_obs = ObservableComposition()
+    url_comp_obs.operator = ObservableComposition.OPERATOR_OR
+
+    comp_obs = ObservableComposition()
+    comp_obs.operator = ObservableComposition.OPERATOR_OR
+
     for attribute in obj.attributes:
-      gen_cybox = self.cybox_mapper.create_generic_cybox(attribute)
-      if attribute.ioc == '1' or attribute.ioc == 1:
-        indicator = self.create_indicator(gen_cybox, None, obj)
-        stix_package.add_indicator(indicator)
-      else:
-        observable = self.create_observable(attribute, gen_cybox)
-        stix_package.add_observable(observable)
+      try:
+        gen_cybox = self.cybox_mapper.create_generic_cybox(attribute)
+        observable = self.cybox_mapper.create_observable(attribute.definition.name, attribute.uuid, gen_cybox)
+        if attribute.ioc == '1' or attribute.ioc == 1:
+          if isinstance(gen_cybox, File):
+            if gen_cybox.hashes:
+              fh_comp_obs.add(observable)
+            else:
+              ioc_comp_obs.add(observable)
+          elif isinstance(gen_cybox, Address):
+            ip_comp_obs.add(observable)
+          elif isinstance(gen_cybox, URI):
+            if gen_cybox.type_ == URI.TYPE_DOMAIN:
+              dom_comp_obs.add(observable)
+            elif gen_cybox.type_ == URI.TYPE_URL:
+              url_comp_obs.add(observable)
+            else:
+              ioc_comp_obs.add(observable)
+        else:
+          comp_obs.add(observable)
+
+      except CyboxNotMappableException as error:
+        print error.message
+    if len(fh_comp_obs.observables) > 0:
+      indicator = self.create_indicator(fh_comp_obs, None, obj, "File Hash Watchlist")
+      stix_package.add_indicator(indicator)
+
+    if len(ip_comp_obs.observables) > 0:
+      indicator = self.create_indicator(ip_comp_obs, None, obj, "IP Watchlist")
+      stix_package.add_indicator(indicator)
+
+    if len(dom_comp_obs.observables) > 0:
+      indicator = self.create_indicator(dom_comp_obs, None, obj, "Domain Watchlist")
+      stix_package.add_indicator(indicator)
+
+    if len(url_comp_obs.observables) > 0:
+      indicator = self.create_indicator(url_comp_obs, None, obj, "URL Watchlist")
+      stix_package.add_indicator(indicator)
+
+    if len(ioc_comp_obs.observables) > 0:
+      indicator = self.create_indicator(ioc_comp_obs, None, obj)
+      stix_package.add_indicator(indicator)
+
+    if len(comp_obs.observables) > 0:
+      stix_package.add_observable(comp_obs)
+    self.__post_processing(obj, None, None, stix_package, None, None, None)
+    self.__set_parent_child_relation(parent, gen_cybox)
     return True
 
-  def create_stix_object(self, stix_package, obj, parent=None, indicator_parent=None, parent_child_relation=None):
-    created = False
-    if not created and obj.definition.name == 'email':
-      created = self.create_email(stix_package, obj, parent, indicator_parent, parent_child_relation)
-    if not created and 'file' in obj.definition.name:
-      created = self.create_file(stix_package, obj, parent, indicator_parent, parent_child_relation)
-    if not created and obj.definition.name == 'forensic_records':
+  def create_stix_object(self, stix_package, obj, parent=None, indicator_parent=None):
+    stix_object = None
+    if obj.definition.name == 'email':
+      stix_object = self.create_email(stix_package, obj, parent, indicator_parent)
+    elif 'file' in obj.definition.name:
+      stix_object = self.create_file(stix_package, obj, parent, indicator_parent)
+    elif obj.definition.name == 'forensic_records':
       raise StixMapperException('Forensic records is not implemented')
-    if not created and obj.definition.name == 'malicious_website':
+    elif obj.definition.name == 'malicious_website':
       raise StixMapperException('Malicious website is not implemented')
-    if not created and obj.definition.name == 'network_traffic':
+    elif obj.definition.name == 'network_traffic':
       raise StixMapperException('Network traffic is not implemented')
-    if not created and obj.definition.name == 'reference_document':
+    elif obj.definition.name == 'reference_document':
       # References are not supported by STIX
       print 'Reference document is not supported'
-      created = True
-    if not created and obj.definition.name == 'references':
+      stix_object = True
+    elif obj.definition.name == 'references':
       # References are not supported by STIX
       print 'References is not supported'
-      created = True
-    if not created and obj.definition.name == 'source_code':
+      stix_object = True
+    elif obj.definition.name == 'source_code':
       raise StixMapperException('Source code is not implemented')
-    if not created and obj.definition.name == 'user_account':
+    elif obj.definition.name == 'user_account':
       raise StixMapperException('User account is not implemented')
-    if not created and obj.definition.name == 'ioc_records':
-      created = self.create_ioc_records(stix_package, obj, parent, indicator_parent, parent_child_relation)
-    return created
+    elif obj.definition.name == 'ioc_records':
+      stix_object = self.create_ioc_records(stix_package, obj, parent, indicator_parent)
+    return stix_object
 
-  def create_indicator(self, cybox_object, ttp, attribute, indicator_type=None, parent_child_relation=None):
+  def create_indicator(self, cybox_object, ttp, attribute, indicator_type=None):
     indicator = Indicator()
-    indicator.id_ = 'ce1sus:Indicator-{0}'.format(attribute.uuid)
+    indicator.id_ = 'ce1sus:Indicator1-{0}'.format(attribute.uuid)
     indicator.title = attribute.definition.name
     indicator.observable_composition_operator = OPERATOR_OR
     # Todo Add confidence

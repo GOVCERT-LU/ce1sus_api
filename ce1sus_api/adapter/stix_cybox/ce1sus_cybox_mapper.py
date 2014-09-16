@@ -5,12 +5,11 @@
 
 Created on Aug 1, 2014
 """
-from ce1sus_api.adapter.stix_cybox.common import CyboxMapperException, \
-  CyboxMapperDepricatedException
+from ce1sus_api.adapter.stix_cybox.common import CyboxMapperException, CyboxMapperDepricatedException, CyboxNotMappableException
+from ce1sus_api.adapter.stix_cybox.common import get_parent_child_relation, get_inverse_relation
 
 from cybox.common.time import Time
 from cybox.core import Observable, ObservableComposition
-from cybox.core.object import Object
 from cybox.objects.address_object import EmailAddress
 from cybox.objects.artifact_object import Artifact, Base64Encoding
 from cybox.objects.code_object import Code
@@ -42,7 +41,12 @@ class CyboxMapper(object):
                     'url': URI,
                     'win_registry_key': WinRegistryKey,
                     'domain': DomainName,
-                    'url_path': URI
+                    'url_path': URI,
+                    'analysis_free_text': True,
+                    'hash_sha1': File,
+                    'hash_md5': File,
+                    'hash_sha256': File,
+
                     }
 
   def create_observable(self, tile, uuid, cybox_object):
@@ -74,10 +78,17 @@ class CyboxMapper(object):
     # This creates a cybox object for the attributes where a one to one mapping is possible
     definition = attribute.definition.name
     clazz = CyboxMapper.DIRECT_MAPPING.get(definition, None)
-    if clazz:
+    if clazz is True:
+      raise CyboxNotMappableException(u'Mapping of {0} is not avalable in strix'.format(definition))
+    elif clazz:
       instance = clazz()
-      instance.value = attribute.value
-      return instance
+      if isinstance(instance, File):
+        cybox_file = self.get_blank_file()
+        self.populate_file_cybox(cybox_file, attribute)
+        return cybox_file
+      else:
+        instance.value = attribute.value
+        return instance
     else:
       raise CyboxMapperException(u'Direct mapping of "{0}" is not defined'.format(definition))
 
@@ -100,7 +111,7 @@ class CyboxMapper(object):
       cybox_value = getattr(cybox_obj, proerty_name, None)
       cybox_value.condition = condition
 
-  def populate_file_cybox(self, cybox_file, obj, attribute):
+  def populate_file_cybox(self, cybox_file, attribute):
     def_name = attribute.definition.name
     if def_name == 'digital_signature':
       # check if not already set
@@ -144,13 +155,11 @@ class CyboxMapper(object):
     else:
       raise CyboxMapperException('No Attribute "{0}" for populating a file'.format(def_name))
 
+  def get_relation(self, parent_obj, child_obj):
+    return get_parent_child_relation(parent_obj, child_obj)
+
   def get_inverse_relation(self, relation):
-    if "Contains":
-      return "Contained_Within"
-    elif "Contained_Within":
-      return "Contains"
-    else:
-      raise CyboxMapperException(u'Inverse relation {0} is not defined'.format(relation))
+    return get_inverse_relation(relation)
 
   def create_raw_file(self, cybox_file, obj):
     # create package
@@ -163,7 +172,7 @@ class CyboxMapper(object):
     if not cybox_email.header:
       cybox_email.header = EmailHeader()
 
-  def populate_email_cybox(self, cybox_email, obj, attribute):
+  def populate_email_cybox(self, cybox_email, attribute):
     # returns a cybox email object out of a ce1sus object
     def_name = attribute.definition.name
 

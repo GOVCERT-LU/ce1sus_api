@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'Georges Toth'
+__author__ = 'Weber Jean-Paul'
 __email__ = 'georges.toth@govcert.etat.lu'
 __copyright__ = 'Copyright 2014, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
