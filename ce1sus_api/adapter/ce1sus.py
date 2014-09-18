@@ -25,6 +25,7 @@ ce1sus_obj_checksums = {'network_traffic': '468bc69e746c453763f1c1ed644742628ca4
                         'references': 'f4c9a69f715c3c60aa2fc15795b3834d2dc51b9d',
                         'ioc_records': '4ffb865c9d6950a643fd29d7170e849b1d077b9a',
                         'reference_document': 'dee32f113d56844d27b15c236d7fb66afdbef085',
+                        'email': 'a88b7dcd1a9e3e17770bbaa6d7515b31a2d7e85d'
                         }
 ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                          'email_to': 'e56afb60554c27a596338fb54862bb9f17e5f77f',
