@@ -360,7 +360,12 @@ def parse_event_objects(event, api_url=None, api_headers=None):
           raise Exception('Invalid type')
 
       if type_ == 'ipv4_addr' and ':' in value:
-        type_ = 'ipv6_addr'
+        if '/' in value:
+          type_ = 'ipv6_net'
+        else:
+          type_ = 'ipv6_addr'
+      elif type_ == 'ipv4_addr' and '/' in value:
+        type_ = 'ipv4_net'
 
       ioc_object['attributes'].append((type_, value, ioc, share))
 
