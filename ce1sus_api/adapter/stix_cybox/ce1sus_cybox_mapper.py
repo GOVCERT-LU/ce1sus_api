@@ -117,19 +117,19 @@ class CyboxMapper(object):
       # check if not already set
       raise CyboxMapperException('Not defined')
     elif def_name == 'encryption_mechanism':
-      self.set_check_attr(cybox_file, 'encryption_mechanism', attribute.value)
+      self.set_check_attr(cybox_file, 'encryption_algorithm', attribute.value)
     elif def_name == 'file_accessed_datetime':
-      self.set_check_attr(cybox_file, 'file_accessed_datetime', attribute.value)
+      self.set_check_attr(cybox_file, 'accessed_time', attribute.value)
     elif def_name == 'file_created_datetime':
-      self.set_check_attr(cybox_file, 'file_created_datetime', attribute.value)
+      self.set_check_attr(cybox_file, 'created_time', attribute.value)
     elif def_name == 'file_extension':
-      self.set_check_attr(cybox_file, 'file_created_datetime', attribute.value)
+      self.set_check_attr(cybox_file, 'file_extension', attribute.value)
     elif def_name == 'file_full_path':
       self.set_check_attr(cybox_file, 'full_path', attribute.value)
     elif def_name == 'file_full_path_pattern':
       self.set_check_attr(cybox_file, 'full_path', attribute.value, "like")
     elif def_name == 'file_modified_time':
-      self.set_check_attr(cybox_file, 'file_modified_time', attribute.value)
+      self.set_check_attr(cybox_file, 'modified_time', attribute.value)
     elif def_name == 'file_name' or def_name == 'email_attachment_file_name':
       self.set_check_attr(cybox_file, 'file_name', attribute.value)
       cybox_file.file_name.condition = "Equals"

@@ -34,7 +34,7 @@ __license__ = 'GPL v3+'
 INDICATOR_OBS_RELATION = "Child_Of"
 
 
-class StixMapper(object):
+class Ce1susStixMapper(object):
 
   def __init__(self):
     self.cybox_mapper = CyboxMapper()

@@ -25,7 +25,8 @@ ce1sus_obj_checksums = {'network_traffic': '468bc69e746c453763f1c1ed644742628ca4
                         'references': 'f4c9a69f715c3c60aa2fc15795b3834d2dc51b9d',
                         'ioc_records': '4ffb865c9d6950a643fd29d7170e849b1d077b9a',
                         'reference_document': 'dee32f113d56844d27b15c236d7fb66afdbef085',
-                        'email': 'a88b7dcd1a9e3e17770bbaa6d7515b31a2d7e85d'
+                        'email': 'a88b7dcd1a9e3e17770bbaa6d7515b31a2d7e85d',
+                        'executable_file': 'f82c52727e0d45c79cd3810704314d6c08fed47a',
                         }
 ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                          'email_to': 'e56afb60554c27a596338fb54862bb9f17e5f77f',
@@ -33,7 +34,7 @@ ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                          'traffic_content_pattern': 'cc35a2e8d1fe7b658f5124797572d6041abca614',
                          'analysis_free_text': '452fba47ced447f27f20db54bfe70370447ff5c1',
                          'reference_external_identifier': '204a2682e62980f6659d3497d87e2daea4fe5218',
-                         'url': 'ed3f523221541f4318716ace3c51ebd44ef593e9',
+                         'url': '45c2e97e2782cf8d96c1143d3d03cb2ca5715ad8',
                          'ids_rules': 'd66dc46c3d6c003104e56bfb7510239416d6588f',
                          'hash_md5': '8a3975c871c6df7ab9a890b8f0fd1fb6e4e6556e',
                          'hash_sha1': 'dc4e8dd46d60912abbfc3dd61c16ef1f91414032',
@@ -42,6 +43,12 @@ ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                          'yara_rule': '98fc9e6a364ad850765c20a0eb55ad7b2df7b3ee',
                          'hostname': '304b44f1d241b7b97a2d658cddf798042d416ca8',
                          'comment': '42dac9882bc6ab5e3c3d52cf5a7019b4c84ed20f',
+                         'email_subject': '2ce464780bd3f8c2215849fd883bf236003d2778',
+                         'email_from': '59cf7eefc377bdc51683521b5f340c40a55c9086',
+                         'size_in_bytes': '9d99d7a9a888a8bfd0075090c33e6a707625673a',
+                         'raw_file': '03c710c3265fe4488f559ebda358beb63525bda3',
+                         'hash_sha384': '40c1ce5808fa21c6a90d27e4b08b7b7171a23b92',
+                         'hash_sha512': '6d2cf7df2da95b6f878a9be2b754de1e6d1f6224',
                          }
 
 
@@ -68,7 +75,7 @@ def create_event(event_header, tag, title_prefix=''):
   event.status = u'Confirmed'
 
   # Gather group
-  creator_name = event_header.get('org', None)
+  creator_name = event_header.get('corg', None)
   if creator_name:
     creator = RestGroup()
     creator.name = creator_name

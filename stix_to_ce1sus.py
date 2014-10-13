@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from ce1sus_api.adapter.stix_converter import StixConverter
+from ce1sus_api.api.ce1susapi import Ce1susAPI
+from ce1sus_api.helpers.config import Configuration, ConfigKeyNotFoundException, ConfigException
+from optparse import OptionParser
+import os
+import sys
+
+from stix.core.stix_package import STIXPackage
+
 
 __author__ = 'Weber Jean-Paul'
 __email__ = 'georges.toth@govcert.etat.lu'
@@ -7,12 +16,6 @@ __copyright__ = 'Copyright 2014, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 
-import sys
-import os
-from optparse import OptionParser
-from ce1sus_api.api.ce1susapi import Ce1susAPI
-from ce1sus_api.adapter.stix_converter import StixConverter
-from ce1sus_api.helpers.config import Configuration, ConfigKeyNotFoundException, ConfigException
 
 
 if __name__ == '__main__':
@@ -20,7 +23,7 @@ if __name__ == '__main__':
   parser = OptionParser()
   parser.add_option('-c', dest='ce1sus', type='string', default='',
                     help='ce1sus instance to use')
-  parser.add_option('--uuid', dest='event_uuid', type='string', default='',
+  parser.add_option('--xml', dest='xml_file', type='string', default='',
                     help='event UUID')
   parser.add_option('-v', dest='verbose', action='store_true', default=False,
                     help='verbose output')
@@ -36,7 +39,7 @@ if __name__ == '__main__':
     parser.print_help()
     sys.exit(1)
 
-  if options.ce1sus == '' or options.event_uuid == '':
+  if options.ce1sus == '' or options.xml_file == '':
     print 'ERROR: Invalid arguments'
     print
     parser.print_help()
@@ -50,19 +53,14 @@ if __name__ == '__main__':
     print 'ERROR: ce1sus config error'
     sys.exit(1)
 
-  ce1sus_api = Ce1susAPI(ce1sus_api_url, ce1sus_api_key, verify_ssl=False)
-
-  event = ce1sus_api.get_event_by_uuid(options.event_uuid, withDefinition=True)
-
+  stix_package = STIXPackage.from_xml(options.xml_file)
   # Set namespaces
   ce1sushost = ce1sus_api_url.replace('/REST/0.2.0', '')
   ce1sushost = ce1sushost.replace('/REST/0.2.0/', '')
 
   stix_convcerter = StixConverter(ce1sushost)
+  event = stix_convcerter.create_ce1sus_event(stix_package)
 
-  stix_xml = stix_convcerter.create_stix_xml(event)
-  # print stix_xml
-  xmlfile = open('Event-{0}.xml'.format(options.event_uuid), 'w')
-  xmlfile.write(stix_xml)
-  xmlfile.close()
+  ce1sus_api = Ce1susAPI(ce1sus_api_url, ce1sus_api_key, verify_ssl=False)
+  ce1sus_api.insert_event(event, False, True)
   print 'Done'
