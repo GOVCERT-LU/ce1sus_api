@@ -28,7 +28,7 @@ ce1sus_obj_checksums = {'network_traffic': '468bc69e746c453763f1c1ed644742628ca4
                         'executable_file': 'f82c52727e0d45c79cd3810704314d6c08fed47a',
                         'victim_targeting': '8062ece85c5860f862db2fddc3342c6ead52f744'
                         }
-ce1sus_attr_checksums_new = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
+ce1sus_attr_checksums = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4',
                              'email_to': 'e56afb60554c27a596338fb54862bb9f17e5f77f',
                              'ipv4_addr': 'cdfd7afaf21cede78d8d09e36aae52c82ebe1f69',
                              'traffic_content_pattern': 'cc35a2e8d1fe7b658f5124797572d6041abca614',
@@ -99,7 +99,7 @@ def create_event(event_header, tag, title_prefix=''):
   if not event_header.get('id', '') == '':
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
-    attribute.definition.chksum = ce1sus_attr_checksums_new['reference_external_identifier']
+    attribute.definition.chksum = ce1sus_attr_checksums['reference_external_identifier']
     attribute.value = u'{0}{1} Event ID {2}'.format(title_prefix, tag, event_header.get('id', ''))
     attribute.ioc = 0
     attribute.share = 0
@@ -109,7 +109,7 @@ def create_event(event_header, tag, title_prefix=''):
   if not event_header.get('uuid', '') == '':
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
-    attribute.definition.chksum = ce1sus_attr_checksums_new['reference_external_identifier']
+    attribute.definition.chksum = ce1sus_attr_checksums['reference_external_identifier']
     attribute.value = u'{0}{1} Event UUID {2}'.format(title_prefix, tag, event_header.get('uuid', ''))
     attribute.ioc = 0
     attribute.share = 0
@@ -156,7 +156,7 @@ def create_object(object_struct, creator, object_type='ioc_records'):
 
     attribute = RestAttribute()
     attribute.definition = RestAttributeDefinition()
-    attribute.definition.chksum = ce1sus_attr_checksums_new[type_]
+    attribute.definition.chksum = ce1sus_attr_checksums[type_]
     attribute.value = value
     attribute.ioc = ioc
     attribute.share = share
