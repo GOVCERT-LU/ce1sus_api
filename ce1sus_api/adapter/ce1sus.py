@@ -41,7 +41,7 @@ ce1sus_attr_checksums_new = {'domain': '90828f4af42b665fb1a426b3a887019b0da61eb4
                              'hash_sha256': '1350a97f87dfb644437814905cded4a86e58a480',
                              'file_name': 'beba24a09fe92b09002616e6d703b3a14306fed1',
                              'yara_rule': '98fc9e6a364ad850765c20a0eb55ad7b2df7b3ee',
-                             'hostname': 'd30bfcc4c9fc3ef3a1238ae5862dd11be6fea2bd',
+                             'hostname': '304b44f1d241b7b97a2d658cddf798042d416ca8',
                              'comment': '42dac9882bc6ab5e3c3d52cf5a7019b4c84ed20f',
                              'email_subject': '2ce464780bd3f8c2215849fd883bf236003d2778',
                              'email_from': '59cf7eefc377bdc51683521b5f340c40a55c9086',
