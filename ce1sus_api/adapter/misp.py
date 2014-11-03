@@ -57,8 +57,9 @@ attribute_map = {'domain': 'domain',
                  'pattern-in-file': 'file_content_pattern',
                  'target-org': 'targeted_organization',
                  'regkey|value': 'win_registry_key',
-                 'target-machine': 'comment',
+                 'target-machine': 'targeted_machine',
                  'target-location': 'observable_location',
+                 'target-external': 'targeted_organization'
                  }
 
 threat_level_id_map = {'1': 'High',
@@ -237,7 +238,17 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         elif e.tag == 'distribution':
           distribution = int(e.text)
 
-    if type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
+    if type_ in ('target-external', 'target-machine'):
+      gf_object = {'type': 'victim_targeting', 'attributes': []}
+      for obj in event_objects:
+        if obj.get('type', None) == gf_object.get('type', None):
+          gf_object = obj
+          break
+
+      gf_object['attributes'].append((attribute_map.get(type_, None), value, ioc, share))
+      event_objects.append(gf_object)
+
+    elif type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
       hash_type = type_.split('|')[1]
       type_ = attribute_map[hash_type]
       filename, hash_value = value.split('|')
