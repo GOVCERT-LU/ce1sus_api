@@ -246,7 +246,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
       gf_object['attributes'].append(('file_name', filename, ioc, share))
       gf_object['attributes'].append((type_, hash_value, ioc, share))
       event_objects.append(gf_object)
-    elif type_ in ('malware-sample', 'email-attachment') or (category in ('antivirus detection') and type_ in ('attachment')):
+    elif type_ in ('malware-sample', 'email-attachment') or (category in ('antivirus detection', 'artifacts dropped') and type_ in ('attachment')):
       hash_type = None
       gf_object = {'type': 'generic_file', 'attributes': []}
 
