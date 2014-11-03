@@ -239,14 +239,17 @@ def parse_event_objects(event, api_url=None, api_headers=None):
           distribution = int(e.text)
 
     if type_ in ('target-external', 'target-machine'):
+      found = False
       gf_object = {'type': 'victim_targeting', 'attributes': []}
       for obj in event_objects:
         if obj.get('type', None) == gf_object.get('type', None):
           gf_object = obj
+          found = True
           break
 
       gf_object['attributes'].append((attribute_map.get(type_, None), value, ioc, share))
-      event_objects.append(gf_object)
+      if not found:
+        event_objects.append(gf_object)
 
     elif type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
       hash_type = type_.split('|')[1]
