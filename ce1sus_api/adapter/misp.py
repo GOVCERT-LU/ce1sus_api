@@ -316,7 +316,7 @@ def parse_event_objects(event, api_url=None, api_headers=None):
         ref_object['children'].append(ref_doc_object)
       else:
         raise Exception('Cannot download files in offline mode!')
-    elif category == 'network activity' and type_ == 'attachment' and value.lower().endswith('.pcap'):
+    elif category == 'network activity' and type_ == 'attachment' and value.lower().endswith(('.pcap','.pcapng')):
       if not (api_url is None and api_headers is None):
         try:
           data = fetch_attachment(api_url, api_headers, id_)
