@@ -1,2 +1,4 @@
 *.pyc
 /definitions.json
+/cybox/
+/stix/

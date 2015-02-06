@@ -37,7 +37,6 @@ if __name__ == '__main__':
   (options, args) = parser.parse_args()
 
   try:
-
     config_file = os.path.expanduser('~/.ce1sus_adapter.conf')
     config = Configuration(config_file)
   except ConfigException:
