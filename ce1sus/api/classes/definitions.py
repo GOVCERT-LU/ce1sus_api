@@ -54,12 +54,12 @@ class ObjectDefinition(RestBase):
       return {'identifier': self.identifier,
               'name': self.name}
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.name = json.get('name', None)
     self.description = json.get('description', None)
     self.default_share = json.get('default_share', False)
+    self.chksum = json.get('chksum', None)
 
 
 class AttributeDefinition(RestBase):
@@ -108,9 +108,8 @@ class AttributeDefinition(RestBase):
               'default_condition_id': self.convert_value(self.default_condition_id),
               }
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.name = json.get('name', None)
     self.description = json.get('description', None)
     self.attributehandler_id = json.get('attributehandler_id', None)
@@ -122,3 +121,4 @@ class AttributeDefinition(RestBase):
     share = json.get('share', False)
     self.share = share
     self.regex = json.get('regex', None)
+    self.chksum = json.get('chksum', None)

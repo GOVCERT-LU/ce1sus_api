@@ -40,16 +40,15 @@ class ObservableComposition(RestBase):
             'properties': self.properties.to_dict()
             }
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.operator = json.get('operator', 'OR')
     self.properties.populate(json.get('properties', Properties('0')))
     observables = json.get('observables', None)
     if observables:
       for observable in observables:
         obs = Observable()
-        obs.populate(observable, set_identifier)
+        obs.populate(observable)
         self.observables.append(obs)
 
 
@@ -87,6 +86,8 @@ class Observable(ExtendedLogingInformations):
     self.related_observables = list()
     self.modifier = None
     self.event_id = None
+    self.title = None
+    self.version = None
 
   def to_dict(self, complete=True, inflated=False):
     obj = self.object
@@ -130,9 +131,9 @@ class Observable(ExtendedLogingInformations):
 
     return result
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+  def populate(self, json):
+
+    self.identifier = json.get('identifier', None)
     self.title = json.get('title', None)
     self.description = json.get('description', None)
     self.version = json.get('version', '')
@@ -140,28 +141,28 @@ class Observable(ExtendedLogingInformations):
     obj = self.title = json.get('object', None)
     if obj:
       obj_instance = Object()
-      obj_instance.populate(obj, set_identifier)
+      obj_instance.populate(obj)
       self.object = obj_instance
     comp = self.title = json.get('observable_composition', None)
     if comp:
       comp_instance = ObservableComposition()
-      comp_instance.populate(comp, set_identifier)
+      comp_instance.populate(comp)
       self.observable_composition = comp_instance
     rel_obs = self.title = json.get('related_observables', None)
     if rel_obs:
       for rel_ob in rel_obs:
         obj_instance = RelatedObservable()
         obj_instance.populate(rel_ob)
-        self.related_observables.append(obj_instance, set_identifier)
+        self.related_observables.append(obj_instance)
     modifier_group = json.get('modifier_group', None)
     if modifier_group:
       cg_instance = Group()
-      cg_instance.populate(modifier_group, set_identifier)
+      cg_instance.populate(modifier_group)
       self.modifier = cg_instance
     creator_group = json.get('creator_group', None)
     if creator_group:
       cg_instance = Group()
-      cg_instance.populate(creator_group, set_identifier)
+      cg_instance.populate(creator_group)
       self.creator_group = cg_instance
     created_at = json.get('created_at', None)
     if created_at:

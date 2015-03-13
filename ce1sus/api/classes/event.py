@@ -49,7 +49,8 @@ class Event(ExtendedLogingInformations):
     self.groups = list()
     self.properties = Properties('0')
     self.reports = list()
-    self.modifier = None
+    self.originating_group = None
+    self.indicators = list()
 
   @property
   def status(self):
@@ -138,7 +139,12 @@ class Event(ExtendedLogingInformations):
 
       reports_count = len(reports)
 
+      indicators = list()
+      for indicator in self.indicators:
+        indicators.append(indicator.to_dict(complete, inflated))
+
     else:
+      indicators = None
       observables = None
       # observables_count = self.observables_count_for_permissions(event_permissions)
       observables_count = -1
@@ -167,13 +173,18 @@ class Event(ExtendedLogingInformations):
                 'created_at': self.convert_value(self.created_at),
                 'published': self.convert_value(self.properties.is_shareable),
                 'modified_on': self.convert_value(self.modified_on),
+                'originating_group': self.originating_group.to_dict(complete, False),
                 # TODO: add first and last seen
+                'reports': reports,
+                'reports_count': reports_count,
                 'first_seen': self.convert_value(None),
                 'last_seen': self.convert_value(None),
                 'observables': observables,
                 'observables_count': observables_count,
                 'comments': comments,
                 'properties': self.properties.to_dict(),
+                'indicators': indicators,
+                'indicators_count': len(indicators),
                 'groups': groups
                 }
     else:
@@ -184,6 +195,7 @@ class Event(ExtendedLogingInformations):
                 'created_at': self.convert_value(self.created_at),
                 'published': self.convert_value(self.properties.is_shareable),
                 'modified_on': self.convert_value(self.modified_on),
+                'originating_group': self.originating_group.to_dict(complete, False),
                 # TODO: add first and last seen
                 'first_seen': self.convert_value(None),
                 'last_seen': self.convert_value(None),
@@ -197,14 +209,15 @@ class Event(ExtendedLogingInformations):
                 'analysis': self.convert_value(self.analysis),
                 'creator_group': self.creator_group.to_dict(complete, inflated),
                 'comments': None,
+                'indicators': indicators,
+                'indicators_count': 0,
                 'properties': self.properties.to_dict()
                 }
     return result
 
-  def populate(self, json, set_identifier=False):
+  def populate(self, json):
 
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+    self.identifier = json.get('identifier', None)
 
     self.title = json.get('title', None)
     self.description = json.get('description', None)
@@ -225,17 +238,22 @@ class Event(ExtendedLogingInformations):
     if observables:
       for observable in observables:
         obs = Observable()
-        obs.populate(observable, set_identifier)
+        obs.populate(observable)
         self.observables.append(obs)
     modifier_group = json.get('modifier_group', None)
     if modifier_group:
       cg_instance = Group()
-      cg_instance.populate(modifier_group, set_identifier)
+      cg_instance.populate(modifier_group)
       self.modifier = cg_instance
+    originating_group = json.get('originating_group', None)
+    if originating_group:
+      cg_instance = Group()
+      cg_instance.populate(originating_group)
+      self.originating_group = cg_instance
     creator_group = json.get('creator_group', None)
     if creator_group:
       cg_instance = Group()
-      cg_instance.populate(creator_group, set_identifier)
+      cg_instance.populate(creator_group)
       self.creator_group = cg_instance
     created_at = json.get('created_at', None)
     if created_at:
@@ -253,18 +271,14 @@ class Event(ExtendedLogingInformations):
     if reports:
       for report in reports:
         report_instacne = Report()
-        report_instacne.populate(report, set_identifier)
+        report_instacne.populate(report)
         self.reports.append(report_instacne)
     comments = json.get('comments', None)
     if comments:
       for comment in comments:
         comment_instacne = Comment()
-        comment_instacne.populate(comment, set_identifier)
+        comment_instacne.populate(comment)
         self.comments.append(comment_instacne)
-
-
-    # TODO: populate properties
-    # self.published = json.get('published', None)
 
 
 class Comment(ExtendedLogingInformations):

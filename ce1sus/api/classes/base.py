@@ -55,3 +55,6 @@ class ExtendedLogingInformations(RestBase):
     RestBase.__init__(self)
     self.originating_group = None
     self.creator_group = None
+    self.created_at = None
+    self.modified_on = None
+    self.modifier = None

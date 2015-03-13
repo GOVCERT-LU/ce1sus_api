@@ -166,6 +166,9 @@ class Group(RestObject):
     self.name = None
     self.permissions = GroupRights('0')
     self.default_permissions = EventPermissions('0')
+    self.description = None
+    self.email = None
+    self.gpg_key = None
 
   def to_dict(self, complete=True, inflated=False):
     if complete:
@@ -183,9 +186,8 @@ class Group(RestObject):
               'name': self.name
               }
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('identifier', None)
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.name = json.get('name', None)
     self.description = json.get('description', None)
     self.email = json.get('email', None)

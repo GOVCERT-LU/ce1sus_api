@@ -71,7 +71,7 @@ class Reference(ExtendedLogingInformations):
             'created_at': self.convert_value(self.created_at),
             'modified_on': self.convert_value(self.modified_on),
             'creator_group': self.creator_group.to_dict(False, False),
-            'modifier_group': self.modifier.group.to_dict(False, False),
+            'modifier_group': self.modifier.to_dict(False, False),
             'properties': self.properties.to_dict()
             }
 
@@ -95,8 +95,11 @@ class Report(ExtendedLogingInformations):
   def __init__(self):
     ExtendedLogingInformations.__init__(self)
     self.properties = Properties('0')
-    self.references = None
-    self.related_reports = None
+    self.references = list()
+    self.related_reports = list()
+    self.title = None
+    self.description = None
+    self.short_description = None
 
   def to_dict(self, complete=True, inflated=False):
     references = list()
@@ -122,7 +125,7 @@ class Report(ExtendedLogingInformations):
               'related_reports': related_reports,
               'related_reports_count': related_count,
               'creator_group': self.creator_group.to_dict(False, False),
-              'modifier_group': self.modifier.group.to_dict(False, False),
+              'modifier_group': self.modifier.to_dict(False, False),
               }
     else:
       return {'identifier': self.identifier,

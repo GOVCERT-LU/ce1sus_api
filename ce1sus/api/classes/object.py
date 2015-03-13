@@ -38,6 +38,16 @@ class RelatedObject(RestBase):
             'parent_id': self.convert_value(self.parent_id)
             }
 
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
+    obj = json.get('object', None)
+    if obj:
+      self.object = Object()
+      print obj.get('identifier', None)
+      self.object.populate(obj)
+    self.relation = json.get('relation', None)
+    self.parent_id = json.get('parent_id')
+
 
 class Object(ExtendedLogingInformations):
 
@@ -79,20 +89,19 @@ class Object(ExtendedLogingInformations):
             'observable_id': self.convert_value(self.observable_id)
             }
 
-  def populate(self, json, set_identifier=False):
-    if set_identifier:
-      self.identifier = json.get('idenfifier', None)
-    # TODO: if inflated
+  def populate(self, json):
+
+    self.identifier = json.get('identifier', None)
     definition_id = json.get('definition_id', None)
     if definition_id:
       self.definition_id = definition_id
       definition = json.get('definition', None)
       if definition:
         definitin_instance = ObjectDefinition()
-        definitin_instance.populate(definition, set_identifier)
+        definitin_instance.populate(definition)
         self.definition = definitin_instance
     if self.definition_id and self.definition:
-      if self.definition_id != self.definition.identifier:
+      if self.definition.identifier and self.definition_id != self.definition.identifier:
         raise ValueException(u'Object definitions cannot be updated')
     if not (self.definition_id or self.definition):
       raise ValueException(u'Object definition or definition_id must be set')
@@ -100,12 +109,12 @@ class Object(ExtendedLogingInformations):
     creator_group = json.get('creator_group', None)
     if creator_group:
       cg_instance = Group()
-      cg_instance.populate(creator_group, set_identifier)
+      cg_instance.populate(creator_group)
       self.creator_group = cg_instance
     modifier_group = json.get('modifier_group', None)
     if modifier_group:
       cg_instance = Group()
-      cg_instance.populate(modifier_group, set_identifier)
+      cg_instance.populate(modifier_group)
       self.modifier = cg_instance
     created_at = json.get('created_at', None)
     if created_at:
@@ -117,12 +126,12 @@ class Object(ExtendedLogingInformations):
     if rel_obs:
       for rel_ob in rel_obs:
         obj_instance = RelatedObject()
-        obj_instance.populate(rel_ob, set_identifier)
-        self.related_observables.append(obj_instance)
+        obj_instance.populate(rel_ob)
+        self.related_objects.append(obj_instance)
 
     attribtues = json.get('attributes', None)
     if attribtues:
       for attribtue in attribtues:
         attribute = Attribute()
-        attribute.populate(attribtue, set_identifier)
+        attribute.populate(attribtue)
         self.attributes.append(attribute)

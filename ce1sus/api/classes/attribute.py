@@ -44,7 +44,6 @@ class Attribute(ExtendedLogingInformations):
     self.definition = None
     self.is_ioc = None
     self.value = None
-    self.condition_id = None
     self.condition = None
     self.properties = Properties('0')
     self.modifier = None
@@ -52,17 +51,14 @@ class Attribute(ExtendedLogingInformations):
 
   def to_dict(self, complete=True, inflated=False):
     condition = None
-    condition_id = None
     if self.condition:
       condition = self.condition.to_dict(complete, inflated)
-      condition_id = self.convert_value(self.condition.identifier)
 
     return {'identifier': self.convert_value(self.identifier),
             'definition_id': self.convert_value(self.definition_id),
             'definition': self.definition.to_dict(complete, False),
             'ioc': self.is_ioc,
             'value': self.convert_value(self.value),
-            'condition_id': condition_id,
             'condition': condition,
             'created_at': self.convert_value(self.created_at),
             'modified_on': self.convert_value(self.modified_on),
@@ -71,17 +67,17 @@ class Attribute(ExtendedLogingInformations):
             'properties': self.properties.to_dict()
             }
 
-  def populate(self, json, set_identifier=False):
+  def populate(self, json):
     definition_id = json.get('definition_id', None)
     if definition_id:
       self.definition_id = definition_id
       definition = json.get('definition', None)
       if definition:
         definitin_instance = AttributeDefinition()
-        definitin_instance.populate(definition, set_identifier)
+        definitin_instance.populate(definition)
         self.definition = definitin_instance
     if self.definition_id and self.definition:
-      if self.definition_id != self.definition.identifier:
+      if self.definition.identifier and self.definition_id != self.definition.identifier:
         raise ValueException(u'Attribute definitions cannot be updated')
     if not (self.definition_id or self.definition):
       raise ValueException(u'Attribute definition or definition_id must be set')
@@ -98,12 +94,12 @@ class Attribute(ExtendedLogingInformations):
     creator_group = json.get('creator_group', None)
     if creator_group:
       cg_instance = Group()
-      cg_instance.populate(creator_group, set_identifier)
+      cg_instance.populate(creator_group)
       self.creator_group = cg_instance
     modifier_group = json.get('modifier_group', None)
     if modifier_group:
       cg_instance = Group()
-      cg_instance.populate(modifier_group, set_identifier)
+      cg_instance.populate(modifier_group)
       self.modifier = cg_instance
     created_at = json.get('created_at', None)
     if created_at:

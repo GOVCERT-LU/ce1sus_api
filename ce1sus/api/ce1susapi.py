@@ -13,6 +13,9 @@ from ce1sus.api.classes.attribute import Attribute
 from ce1sus.api.classes.event import Event
 from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable
+from ce1sus.api.classes.searchresult import SearchResult
+from ce1sus.api.classes.definitions import AttributeDefinition, ObjectDefinition
+from ce1sus.api.classes.report import ReferenceDefinition
 
 
 __author__ = 'Weber Jean-Paul'
@@ -116,11 +119,18 @@ class Ce1susAPI(object):
 
       if request.status_code == requests.codes.ok:
         if clazz:
-          instance = clazz()
           dictionary = json.loads(request.text)
-          instance.populate(dictionary, True)
-
-          return instance
+          if isinstance(dictionary, list):
+            result = list()
+            for item in dictionary:
+              instance = clazz()
+              instance.populate(item)
+              result.append(instance)
+            return result
+          else:
+            instance = clazz()
+            instance.populate(dictionary)
+            return instance
         else:
           return request.text
       else:
@@ -137,7 +147,6 @@ class Ce1susAPI(object):
       url = '{0}?inflated=true'.format(url)
     if complete and inflated:
       url = '{0}?complete=true&inflated=true'.format(url)
-    print url
     return url
 
   def get_event_by_uuid(self, uuid, complete=False, inflated=False):
@@ -256,11 +265,85 @@ class Ce1susAPI(object):
                           None,
                           headers
                           )
-    print text
+    return json.loads(text)
 
   def logout(self):
     text = self.__request('/logout',
                           'GET',
                           None
                           )
-    print text
+    if text == 'User logged out':
+      return True
+    else:
+      return False
+
+  def __get_search_attributes(self):
+    text = self.__request('/search/attributes?complete=true',
+                          'GET',
+                          None
+                          )
+    return json.loads(text)
+
+  def get_attribute_definitions(self, complete=False, inflated=False):
+    url = '/attributedefinition'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    definitions = self.__request(url,
+                                 'GET',
+                                 AttributeDefinition
+                                 )
+    return definitions
+
+  def get_reference_definitions(self, complete=False, inflated=False):
+    url = '/referencedefinition'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    definitions = self.__request(url,
+                                 'GET',
+                                 ReferenceDefinition
+                                 )
+    return definitions
+
+  def get_object_definitions(self, complete=False, inflated=False):
+    url = '/objectdefinition'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    definitions = self.__request(url,
+                                 'GET',
+                                 ObjectDefinition
+                                 )
+    return definitions
+
+  def __get_attribute_id(self, attribute_name, is_report=False):
+    # cover the special cases
+    if attribute_name in ['uuid', 'title', 'description', 'Any']:
+      return attribute_name
+    fields = self.__get_search_attributes()
+    identifier = None
+    for field in fields:
+      if is_report:
+        if attribute_name in field.name and 'report' in field.name:
+          identifier = field.identifier
+          break
+      else:
+        if attribute_name in field.name and 'attribtue' in field.name:
+          identifier = field.identifier
+          break
+    if identifier:
+      return identifier
+
+  def search_attributes(self, operator, attribute_name, value, is_in_report=False):
+    """ Will never throw a Nothing found Exception """
+    if operator not in ['==', '<=', '<', '>', '>=', 'like']:
+      raise Ce1susAPIException('"{0}" is not a valid operator'.format(operator))
+    field = None
+    if attribute_name:
+      # get the definition id for the attribute
+      field = self.__get_attribute_id(attribute_name, is_in_report)
+
+    data = {'operator': operator, 'field': field, 'value': value}
+    text = self.__request('/search', 'POST', None, data)
+    items = json.loads(text)
+    result = list()
+    for item in items:
+      result_item = SearchResult()
+      result_item.populate(item)
+      result.append(result_item)
+    return result
