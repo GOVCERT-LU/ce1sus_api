@@ -79,7 +79,18 @@ if __name__ == '__main__':
   con_defs = ce1sus_api.get_conditions(True)
   ce1sus_api.logout()
 
-  mist_adapter = MispConverter(misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
+  # load misp adapter config
+  try:
+    config_file = os.path.expanduser('config/adapter.conf')
+    adapter_config = Configuration(config_file)
+  except ConfigException:
+    print 'ERROR: Unable to load config config/adapter.conf'
+    print
+    parser.print_help()
+    sys.exit(1)
+
+  mist_adapter = MispConverter(adapter_config, misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
+
   print mist_adapter.get_recent_events(200)
   rest_event = None
   rest_events = None
@@ -94,7 +105,7 @@ if __name__ == '__main__':
     xml_file = open(filename)
     xml_string = xml_file.read()
     xml_file.close()
-    rest_events = mist_adapter.get_event_from_xml(xml_string)
+    rest_event = mist_adapter.get_event_from_xml(xml_string)
   elif misp_event == '-':
     rest_event = mist_adapter.get_event_from_xml(sys.stdin.read())
   elif misp_event:

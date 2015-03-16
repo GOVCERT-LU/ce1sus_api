@@ -6,11 +6,15 @@
 Created on Feb 20, 2015
 """
 from ce1sus_api.helpers.datumzait import DatumZait
-import copy
+from copy import deepcopy
 from dateutil import parser
+from os import makedirs, remove, listdir
+from os.path import isdir, isfile, join
 import re
+from shutil import rmtree, copy
 import urllib2
 from uuid import uuid4
+from zipfile import ZipFile
 
 from ce1sus.api.classes.attribute import Attribute
 from ce1sus.api.classes.event import Event
@@ -19,6 +23,7 @@ from ce1sus.api.classes.indicator import Indicator
 from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable, ObservableComposition
 from ce1sus.api.classes.report import Report, Reference
+from ce1sus.helpers.common.config import ConfigException
 import xml.etree.ElementTree as et
 
 
@@ -63,7 +68,7 @@ def remove_non_ioc(observable):
 
 
 def clone_observable(observable):
-  newobj = copy.deepcopy(observable)
+  newobj = deepcopy(observable)
   # remove non ioc objects
   newobj = remove_non_ioc(newobj)
   return newobj
@@ -111,7 +116,7 @@ class MispConverter(object):
     return {'Accept': 'application/xml',
             'Authorization': self.api_key}
 
-  def __init__(self, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
+  def __init__(self, config, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
     self.api_url = api_url
     self.api_key = api_key
     self.api_headers = self.get_api_header_parameters()
@@ -121,6 +126,18 @@ class MispConverter(object):
     self.reference_definitions = reference_definitions
     self.indicator_types = indicator_types
     self.conditions = conditions
+    self.dump = False
+    self.file_location = None
+    self.log_syslog = False
+    try:
+      self.dump = config.get('misp', 'dumpmispfiles', False)
+      self.file_location = config.get('misp', 'filelocation', None)
+      self.log_syslog = config.get('misp', 'logtosyslog', False)
+      self.temp_folder = config.get('misp', 'tempfolder', None)
+      if not self.temp_folder:
+        raise ConfigException('Temp folder was not specified in configuartion')
+    except ConfigException as error:
+      raise MispConverterException(error)
 
   def set_event_header(self, event, rest_event, title_prefix=''):
     event_header = {}
@@ -143,6 +160,9 @@ class MispConverter(object):
       event_header['tlp'] = MispConverter.distribution_to_tlp_map[event_header['distribution']]
 
     # Populate the event
+    rest_event.identifier = unicode(event_header.get('uuid', None))
+    if not rest_event.identifier:
+      raise MispMappingException('Cannot find uuid for event {0}'.format(event_header.get('id', '')))
     rest_event.title = u'{0}Event {1}'.format(title_prefix, event_header.get('id', ''))
     rest_event.description = unicode(event_header.get('info', ''))
     rest_event.first_seen = parser.parse(event_header.get('date'))
@@ -169,7 +189,7 @@ class MispConverter(object):
     rest_event.creator_group.name = event_header.get('org', None)
     rest_event.modifier = rest_event.creator_group
 
-  def append_attributes(self, obj, observable, id_, category, type_, value, ioc, share, event):
+  def append_attributes(self, obj, observable, id_, category, type_, value, ioc, share, event, uuid):
     if '|' in type_:
       # it is a composed attribute
       if type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
@@ -180,8 +200,8 @@ class MispConverter(object):
           splitted_values = value.split('|')
           first_value = splitted_values[0]
           second_value = splitted_values[1]
-          self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event)
-          self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event)
+          self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
+          self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
         else:
           raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
       else:
@@ -207,11 +227,12 @@ class MispConverter(object):
           hive = None
 
       if hive:
-        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event)
-      self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event, uuid4())
+      self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event, uuid)
 
     elif category in ['external analysis', 'artifacts dropped', 'payload delivery'] and type_ == 'malware-sample':
       filename = value
+      filename_uuid = uuid
       splitted = value.split('|')
       if len(splitted) == 2:
         first_type = 'file_name'
@@ -220,18 +241,18 @@ class MispConverter(object):
         filename = first_value
         second_value = splitted[1]
         second_type = self.get_hash_type(second_value)
-        self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event)
-        self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
+        self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
       else:
         raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
 
       # Download the attachment if it exists
-      data = self.fetch_attachment(id_)
+      data = self.fetch_attachment(id_, filename_uuid, event.identifier)
       if data:
         print u'Downloaded file "{0}" id:{1}'.format(filename, id_)
-        data = self.fetch_attachment(id_)
         # build raw_artifact
         raw_artifact = Object()
+        raw_artifact.identifier = uuid4()
         self.set_properties(raw_artifact, share)
         self.set_extended_logging(raw_artifact, event)
         raw_artifact.definition = self.get_object_definition('Artifact', None, None)
@@ -242,6 +263,7 @@ class MispConverter(object):
 
         # add raw artifact
         attr = Attribute()
+        attr.identifier = uuid4()
         attr.definition = self.get_attibute_definition('', 'raw_artifact', None, raw_artifact, observable, attr)
         if attr.definition:
           attr.definition_id = attr.definition.identifier
@@ -254,7 +276,7 @@ class MispConverter(object):
 
     else:
       attribute = Attribute()
-      attribute.identifier = id_
+      attribute.identifier = uuid
       self.set_properties(attribute, share)
       self.set_extended_logging(attribute, event)
       attribute.definition = self.get_attibute_definition(category, type_, value, obj, observable, attribute)
@@ -497,6 +519,7 @@ class MispConverter(object):
       observable = self.make_observable(event, comment, share)
       # create object
       obj = Object()
+      obj.identifier = uuid4()
       self.set_properties(obj, share)
       self.set_extended_logging(obj, event)
       observable.object = obj
@@ -506,7 +529,7 @@ class MispConverter(object):
         obj.definition_id = obj.definition.identifier
 
         # create attribute(s) for object
-        self.append_attributes(obj, observable, id_, category, type_, value, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, type_, value, ioc, share, event, uuid)
         if not observable.description:
           observable.description = None
         return observable
@@ -748,12 +771,38 @@ class MispConverter(object):
   def get_event_from_xml(self, xml_string):
     xml = et.fromstring(xml_string)
     rest_events = self.parse_events(xml)
-    return rest_events
+    return rest_events[0]
+
+  def __get_dump_path(self, base, dirname):
+    sub_path = '{0}/{1}/{2}'.format(DatumZait.now().year,
+                                    DatumZait.now().month,
+                                    DatumZait.now().day)
+    if self.file_location:
+      path = '{0}/{1}/{2}'.format(base, sub_path, dirname)
+      if not isdir(path):
+        makedirs(path)
+      return path
+    else:
+      raise MispConverterException('Dumping of files was activated but no file location was specified')
+
+  def __dump_files(self, dirname, filename, data):
+      path = self.__get_dump_path(self.file_location, dirname)
+      full_path = '{0}/{1}'.format(path, filename)
+      if isfile(full_path):
+        remove(full_path)
+      f = open(full_path, 'w+')
+      f.write(data)
+      f.close()
 
   def get_event(self, event_id):
     print u'Getting event {0} - {1}/events/view/{0}'.format(event_id, self.api_url)
     xml_string = self.get_xml_event(event_id)
-    return self.get_event_from_xml(xml_string)
+    rest_event = self.get_event_from_xml(xml_string)
+
+    if self.dump:
+      event_uuid = rest_event.identifier
+      self.__dump_files(event_uuid, 'Event-{0}.xml'.format(event_id), xml_string)
+    return rest_event
 
   def map_indicator(self, observable, indicator_type, event):
     indicator = Indicator()
@@ -812,14 +861,53 @@ class MispConverter(object):
 
     return result
 
-  def fetch_attachment(self, attribute_id):
-    return "BLA"
+  def fetch_attachment(self, attribute_id, uuid, event_uuid):
     url = '{0}/attributes/download/{1}'.format(self.api_url, attribute_id)
     try:
+      result = None
       req = urllib2.Request(url, None, self.api_headers)
       resp = urllib2.urlopen(req).read()
+      path = self.__get_dump_path(self.temp_folder, event_uuid)
+      tmp_file = '{0}/{1}'.format(path, '{0}.zip'.format(uuid))
+      f = open(tmp_file, 'w+')
+      f.write(resp)
+      f.close()
+      tmp_ex_folder = '{0}/{1}'.format(path, '{0}'.format(uuid))
+      if not isdir(tmp_ex_folder):
+        makedirs(tmp_ex_folder)
+      # unzip the file
+      zip_file = ZipFile(tmp_file, 'r')
+      zip_file.setpassword('infected'.encode('utf-8'))
+      zip_file.extractall(tmp_ex_folder)
+      zip_file.close()
+      # remove zip
+      remove(tmp_file)
 
-      return resp
+      # see what the files are called and how many
+      files = list()
+      for f in listdir(tmp_ex_folder):
+        if isfile(join(tmp_ex_folder, f)):
+          files.append(join(tmp_ex_folder, f))
+
+      if len(files) == 1:
+        # can only handle one single file
+        f = open(files[0], 'rb')
+        result = f.read()
+        f.close()
+
+      if self.dump:
+        self.__dump_files(event_uuid, '{0}.zip'.format(uuid), resp)
+        # move folder of extracted files
+        dest = self.__get_dump_path(self.file_location, event_uuid)
+        # copy only if file loc and temp loc differ
+        if '{0}/{1}'.format(dest, uuid) != tmp_ex_folder:
+          copy(tmp_ex_folder, dest)
+          rmtree(tmp_ex_folder)
+      else:
+        # remve directory
+        rmtree(tmp_ex_folder)
+
+      return result
     except urllib2.HTTPError:
       return None
 
