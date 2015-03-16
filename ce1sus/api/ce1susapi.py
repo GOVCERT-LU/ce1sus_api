@@ -9,13 +9,14 @@ import json
 import requests
 from requests.sessions import Session
 
-from ce1sus.api.classes.attribute import Attribute
+from ce1sus.api.classes.attribute import Attribute, Condition
 from ce1sus.api.classes.event import Event
 from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable
 from ce1sus.api.classes.searchresult import SearchResult
 from ce1sus.api.classes.definitions import AttributeDefinition, ObjectDefinition
 from ce1sus.api.classes.report import ReferenceDefinition
+from ce1sus.api.classes.indicator import IndicatorType
 
 
 __author__ = 'Weber Jean-Paul'
@@ -299,6 +300,24 @@ class Ce1susAPI(object):
     definitions = self.__request(url,
                                  'GET',
                                  ReferenceDefinition
+                                 )
+    return definitions
+
+  def get_indicator_types(self, complete=False, inflated=False):
+    url = '/indicatortypes'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    definitions = self.__request(url,
+                                 'GET',
+                                 IndicatorType
+                                 )
+    return definitions
+
+  def get_conditions(self, complete=False, inflated=False):
+    url = '/condition'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    definitions = self.__request(url,
+                                 'GET',
+                                 Condition
                                  )
     return definitions
 

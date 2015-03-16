@@ -20,6 +20,20 @@ class IndicatorType(RestBase):
     self.name = None
     self.description = None
 
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
+    self.name = json.get('name', None)
+    self.description = json.get('description', None)
+
+  def to_dict(self, complete=False):
+    if complete:
+      return {'identifier': self.convert_value(self.identifier),
+              'name': self.convert_value(self.name),
+              'description': self.convert_value(self.description)}
+    else:
+      return {'identifier': self.convert_value(self.identifier),
+              'name': self.convert_value(self.name)}
+
 
 class Indicator(ExtendedLogingInformations):
 
@@ -29,11 +43,17 @@ class Indicator(ExtendedLogingInformations):
     self.description = None
     self.short_description = None
     self.confidence = None
-    self.type_ = None
+    self.type_ = list()
     self.operator = 'OR'
     self.properties = Properties('0')
 
   def to_dict(self, complete=True, inflated=False):
+    type_ = None
+    if self.type_:
+      type_ = list()
+      for item in self.type_:
+        type_.append(item.to_dict(True))
+
     if inflated:
       obs = list()
       for observable in self.observables:
@@ -44,7 +64,7 @@ class Indicator(ExtendedLogingInformations):
               'description': self.convert_value(self.description),
               'short_description': self.convert_value(self.short_description),
               'confidence': self.convert_value(self.confidence),
-              'type': self.convert_value(self.type_),
+              'type': type_,
               'operator': self.convert_value(self.operator),
               'observables': obs,
               'observables_count': len_obs,
@@ -60,7 +80,7 @@ class Indicator(ExtendedLogingInformations):
               'description': self.convert_value(self.description),
               'short_description': self.convert_value(self.short_description),
               'confidence': self.convert_value(self.confidence),
-              'type': self.convert_value(self.type_),
+              'type': type_,
               'operator': self.convert_value(self.operator),
               'observables': None,
               'observables_count': -1,

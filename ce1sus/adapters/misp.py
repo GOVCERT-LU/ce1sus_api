@@ -9,7 +9,6 @@ from ce1sus_api.helpers.datumzait import DatumZait
 import copy
 from dateutil import parser
 import re
-from twisted.lore.test.test_lore import sp
 import urllib2
 from uuid import uuid4
 
@@ -112,7 +111,7 @@ class MispConverter(object):
     return {'Accept': 'application/xml',
             'Authorization': self.api_key}
 
-  def __init__(self, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, misp_tag='Generic MISP'):
+  def __init__(self, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
     self.api_url = api_url
     self.api_key = api_key
     self.api_headers = self.get_api_header_parameters()
@@ -120,6 +119,8 @@ class MispConverter(object):
     self.object_definitions = ce1sus_attribute_definitions
     self.attribute_definitions = ce1sus_object_definitions
     self.reference_definitions = reference_definitions
+    self.indicator_types = indicator_types
+    self.conditions = conditions
 
   def set_event_header(self, event, rest_event, title_prefix=''):
     event_header = {}
@@ -168,7 +169,7 @@ class MispConverter(object):
     rest_event.creator_group.name = event_header.get('org', None)
     rest_event.modifier = rest_event.creator_group
 
-  def append_attributes(self, obj, observable, id_, category, type_, value, data, ioc, share, event):
+  def append_attributes(self, obj, observable, id_, category, type_, value, ioc, share, event):
     if '|' in type_:
       # it is a composed attribute
       if type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
@@ -179,8 +180,8 @@ class MispConverter(object):
           splitted_values = value.split('|')
           first_value = splitted_values[0]
           second_value = splitted_values[1]
-          self.append_attributes(obj, observable, id_, category, first_type, first_value, data, ioc, share, event)
-          self.append_attributes(obj, observable, id_, category, second_type, second_value, data, ioc, share, event)
+          self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event)
+          self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event)
         else:
           raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
       else:
@@ -205,31 +206,57 @@ class MispConverter(object):
         else:
           hive = None
 
-        if hive:
-          self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, data, ioc, share, event)
-        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, data, ioc, share, event)
+      if hive:
+        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event)
+      self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event)
 
     elif category in ['external analysis', 'artifacts dropped', 'payload delivery'] and type_ == 'malware-sample':
-
+      filename = value
       splitted = value.split('|')
       if len(splitted) == 2:
         first_type = 'file_name'
 
         first_value = splitted[0]
+        filename = first_value
         second_value = splitted[1]
         second_type = self.get_hash_type(second_value)
-        self.append_attributes(obj, observable, id_, category, first_type, first_value, data, ioc, share, event)
-        self.append_attributes(obj, observable, id_, category, second_type, second_value, data, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event)
       else:
         raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
+
+      # Download the attachment if it exists
+      data = self.fetch_attachment(id_)
+      if data:
+        print u'Downloaded file "{0}" id:{1}'.format(filename, id_)
+        data = self.fetch_attachment(id_)
+        # build raw_artifact
+        raw_artifact = Object()
+        self.set_properties(raw_artifact, share)
+        self.set_extended_logging(raw_artifact, event)
+        raw_artifact.definition = self.get_object_definition('Artifact', None, None)
+        if raw_artifact.definition:
+          raw_artifact.definition_id = raw_artifact.definition.identifier
+        else:
+          raise MispMappingException('Could not find object definition Artifact')
+
+        # add raw artifact
+        attr = Attribute()
+        attr.definition = self.get_attibute_definition('', 'raw_artifact', None, raw_artifact, observable, attr)
+        if attr.definition:
+          attr.definition_id = attr.definition.identifier
+        else:
+          raise MispMappingException('Could not find attribute definition raw_artifact')
+        attr.value = data
+        obj.related_objects.append(raw_artifact)
+      else:
+        print u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
 
     else:
       attribute = Attribute()
       attribute.identifier = id_
       self.set_properties(attribute, share)
       self.set_extended_logging(attribute, event)
-
-      # attribute.condition = 'Equals'
       attribute.definition = self.get_attibute_definition(category, type_, value, obj, observable, attribute)
       if attribute.definition:
         attribute.definition_id = attribute.definition.identifier
@@ -251,7 +278,9 @@ class MispConverter(object):
     # compose the correct chksum/name
     chksum = None
     name = None
-    if type_ in ['filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'] or category in ['antivirus detection']:
+    if category == 'Artifact':
+      name = category
+    elif type_ in ['filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'] or category in ['antivirus detection']:
       name = 'file'
     elif type_ in ['domain']:
       name = 'DomainName'
@@ -326,15 +355,24 @@ class MispConverter(object):
     print message
     raise MispMappingException(message)
 
+  def get_condition(self, condition):
+    for cond in self.conditions:
+      if cond.value == condition:
+        return cond
+    raise MispMappingException(u'Condition {0} is not defined'.format(condition))
+
   def get_attibute_definition(self, category, type_, value, obj, observable, attribute):
     # compose the correct chksum/name
     chksum = None
     name = None
 
+    if type_ == 'raw_artifact':
+      name = type_
+
     if 'pattern' in type_:
-      attribute.condition = 'Like'
+      attribute.condition = self.get_condition('Like')
     else:
-      attribute.condition = 'Equals'
+      attribute.condition = self.get_condition('Equals')
 
     if category == 'antivirus detection' and type_ == 'text':
       name = 'comment'
@@ -468,7 +506,7 @@ class MispConverter(object):
         obj.definition_id = obj.definition.identifier
 
         # create attribute(s) for object
-        self.append_attributes(obj, observable, id_, category, type_, value, data, ioc, share, event)
+        self.append_attributes(obj, observable, id_, category, type_, value, ioc, share, event)
         if not observable.description:
           observable.description = None
         return observable
@@ -564,22 +602,40 @@ class MispConverter(object):
       observable = self.create_observable(id_, uuid, category, type_, value, data, comment, ioc, share, event)
       # returns all attributes for all context (i.e. report and normal properties)
       if observable and isinstance(observable, Observable):
+        obj = observable.object
+        invalid = True
+        attr_def_name = None
+        if obj:
+          if len(obj.attributes) == 1:
+            attr_def_name = obj.attributes[0].definition.name
+          elif len(obj.attributes) == 2:
+            for attr in obj.attributes:
+              if 'hash' in attr.definition.name:
+                attr_def_name = attr.definition.name
+                break
+          else:
+            raise MispMappingException(u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value))
+        else:
+          raise MispMappingException(u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value))
+
         # TODO make sorting via definitions
-        attr_def_name = ''
-        if 'raw' in attr_def_name:
-          artifacts.append(observable)
-        elif 'c&c' in attr_def_name:
-          c2s.append(observable)
-        elif 'ipv' in attr_def_name:
-          ips.append(observable)
-        elif 'hash' in attr_def_name:
-          file_hashes.append(observable)
-        elif 'email' in attr_def_name:
-          mal_email.append(observable)
-        elif 'domain' in attr_def_name or 'hostname' in attr_def_name:
-          domains.append(observable)
-        elif 'url' in attr_def_name:
-          urls.append(observable)
+        if attr_def_name:
+          if 'raw' in attr_def_name:
+            artifacts.append(observable)
+          elif 'c&c' in attr_def_name:
+            c2s.append(observable)
+          elif 'ipv' in attr_def_name:
+            ips.append(observable)
+          elif 'hash' in attr_def_name:
+            file_hashes.append(observable)
+          elif 'email' in attr_def_name:
+            mal_email.append(observable)
+          elif 'domain' in attr_def_name or 'hostname' in attr_def_name:
+            domains.append(observable)
+          elif 'url' in attr_def_name:
+            urls.append(observable)
+          else:
+            others.append(observable)
         else:
           others.append(observable)
 
@@ -708,7 +764,7 @@ class MispConverter(object):
     indicator.event_id = event.identifier
 
     if indicator_type:
-      indicator.type_ .append(self.get_indicator_type(indicator_type))
+      indicator.type_.append(self.get_indicator_type(indicator_type))
 
     new_observable = clone_observable(observable)
     if new_observable:
@@ -755,3 +811,20 @@ class MispConverter(object):
       result.append(event)
 
     return result
+
+  def fetch_attachment(self, attribute_id):
+    return "BLA"
+    url = '{0}/attributes/download/{1}'.format(self.api_url, attribute_id)
+    try:
+      req = urllib2.Request(url, None, self.api_headers)
+      resp = urllib2.urlopen(req).read()
+
+      return resp
+    except urllib2.HTTPError:
+      return None
+
+  def get_indicator_type(self, indicator_type):
+    for type_ in self.indicator_types:
+      if type_.name == indicator_type:
+        return type_
+    raise MispMappingException(u'Indicator type {0} is not defined'.format(indicator_type))

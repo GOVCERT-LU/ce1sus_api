@@ -50,16 +50,12 @@ class Attribute(ExtendedLogingInformations):
     self.object_id = None
 
   def to_dict(self, complete=True, inflated=False):
-    condition = None
-    if self.condition:
-      condition = self.condition.to_dict(complete, inflated)
-
     return {'identifier': self.convert_value(self.identifier),
             'definition_id': self.convert_value(self.definition_id),
             'definition': self.definition.to_dict(complete, False),
             'ioc': self.is_ioc,
             'value': self.convert_value(self.value),
-            'condition': condition,
+            'condition': self.condition.to_dict(complete, inflated),
             'created_at': self.convert_value(self.created_at),
             'modified_on': self.convert_value(self.modified_on),
             'creator_group': self.creator_group.to_dict(False, False),

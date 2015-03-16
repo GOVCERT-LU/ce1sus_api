@@ -8,6 +8,7 @@ import sys
 
 from ce1sus.adapters.misp import MispConverter
 from ce1sus.api.ce1susapi import Ce1susAPI
+from billiard import Event
 
 
 __author__ = 'Georges Toth'
@@ -74,10 +75,13 @@ if __name__ == '__main__':
   o_defs = ce1sus_api.get_object_definitions(True)
   a_defs = ce1sus_api.get_attribute_definitions(True)
   r_defs = ce1sus_api.get_reference_definitions(True)
+  if_defs = ce1sus_api.get_indicator_types(True)
+  con_defs = ce1sus_api.get_conditions(True)
   ce1sus_api.logout()
 
-  mist_adapter = MispConverter(misp_api_url, misp_api_key, o_defs, a_defs, r_defs, misp_tag)
+  mist_adapter = MispConverter(misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
   print mist_adapter.get_recent_events(200)
+
   misp_event = options.misp_event
   if misp_event == '-':
     if options.f:
