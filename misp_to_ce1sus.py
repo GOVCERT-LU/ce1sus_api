@@ -29,9 +29,9 @@ if __name__ == '__main__':
                     help='verbose output')
   parser.add_option('-d', dest='dryrun', action='store_true', default=False,
                     help='dry-run, do not store anything in ce1sus')
-  parser.add_option('--xml', dest='xml', action='store_true', default=False,
-                    help='output raw MISP XML')
-  parser.add_option('-f', dest='f', type='string', default='',
+  parser.add_option('-r', dest='recent', type='string', default='0',
+                    help='import the recent x events')
+  parser.add_option('-f', dest='file', type='string', default='',
                     help='MISP XML File')
 
   (options, args) = parser.parse_args()
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.print_help()
     sys.exit(1)
 
-  if options.misp == '' or options.ce1sus == '' or options.misp_event == '':
+  if (options.misp == '' or options.ce1sus == '') and (options.misp_event == '' and options.file == ''):
     print 'ERROR: Invalid arguments'
     print
     parser.print_help()
@@ -81,26 +81,57 @@ if __name__ == '__main__':
 
   mist_adapter = MispConverter(misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
   print mist_adapter.get_recent_events(200)
-
+  rest_event = None
+  rest_events = None
   misp_event = options.misp_event
-  if misp_event == '-':
-    if options.f:
-      filename = options.f
+  if misp_event and misp_event != '-':
+    try:
+      misp_event_id = int(misp_event)
+    except ValueError:
+      raise Exception('Please specify a valid ID')
+  if options.file:
+    filename = options.file
+    xml_file = open(filename)
+    xml_string = xml_file.read()
+    xml_file.close()
+    rest_events = mist_adapter.get_event_from_xml(xml_string)
+  elif misp_event == '-':
+    rest_event = mist_adapter.get_event_from_xml(sys.stdin.read())
+  elif misp_event:
+    rest_event = mist_adapter.get_event(misp_event)
 
-      print filename
-      xml_file = open(filename)
-      xml_string = xml_file.read()
-      xml_file.close()
+  elif options.recent <= 0:
+    raise Exception('Please specify at least a valid number >0 for option r')
+  elif options.recent > 0:
+    rest_events = mist_adapter.get_recent_events(options.recent)
 
-      rest_event = mist_adapter.get_event_from_xml(xml_string)
+  ce1sus_api.login(ce1sus_api_key)
+  try:
+    if rest_events:
+      for event in rest_events:
+
+        if options.verbose:
+          print json.dumps(event.to_dict(True, True), sort_keys=True, indent=4, separators=(',', ': '))
+
+        if options.dryrun:
+          print 'DRY-RUN: made no changes to ce1sus'
+        else:
+          ce1sus_api.insert_event(event, False, False)
+          print 'Event with uuid {0} inserted'.format(event.identifier)
+    elif rest_event:
+      if options.verbose:
+        print json.dumps(rest_event.to_dict(True, True), sort_keys=True, indent=4, separators=(',', ': '))
+
+      if options.dryrun:
+        print 'DRY-RUN: made no changes to ce1sus'
+      else:
+        ce1sus_api.insert_event(rest_event, False, False)
+        print 'Event with uuid {0} inserted'.format(event.identifier)
     else:
-      rest_event = mist_adapter.get_event_from_xml(sys.stdin.read())
-  else:
-    if options.xml:
-      print mist_adapter.get_xml_event(misp_event)
-    else:
-      rest_event = mist_adapter.get_event(misp_event)
-
-  print json.dumps(rest_event[0].to_dict(True, True), sort_keys=True, indent=4, separators=(',', ': '))
+      raise Exception('Unexpected Error. Please contact your local administrator')
+  except Exception as error:
+    raise error
+  finally:
+    ce1sus_api.logout()
 
   print 'Done'

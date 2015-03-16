@@ -1,0 +1,4 @@
+[misp]
+dumpMispFiles = yes
+fileLocation = 
+logToSyslog = yes
