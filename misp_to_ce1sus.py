@@ -91,7 +91,6 @@ if __name__ == '__main__':
 
   mist_adapter = MispConverter(adapter_config, misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
 
-  print mist_adapter.get_recent_events(200)
   rest_event = None
   rest_events = None
   misp_event = options.misp_event
@@ -137,11 +136,10 @@ if __name__ == '__main__':
         print 'DRY-RUN: made no changes to ce1sus'
       else:
         ce1sus_api.insert_event(rest_event, False, False)
-        print 'Event with uuid {0} inserted'.format(event.identifier)
+        print 'Event with uuid {0} inserted'.format(rest_event.identifier)
     else:
       raise Exception('Unexpected Error. Please contact your local administrator')
-  except Exception as error:
-    raise error
+
   finally:
     ce1sus_api.logout()
 

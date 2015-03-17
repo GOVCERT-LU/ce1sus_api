@@ -133,11 +133,13 @@ class MispConverter(object):
     try:
       self.dump = config.get('misp', 'dumpmispfiles', False)
       self.file_location = config.get('misp', 'filelocation', None)
-      self.log_syslog = config.get('misp', 'logtosyslog', False)
       self.temp_folder = config.get('misp', 'tempfolder', None)
       if not self.temp_folder:
-        raise ConfigException('Temp folder was not specified in configuartion')
+        message = 'Temp folder was not specified in configuartion'
+        self.syslogger.error(message)
+        raise ConfigException(message)
     except ConfigException as error:
+      self.syslogger.error(error)
       raise MispConverterException(error)
 
   def set_event_header(self, event, rest_event, title_prefix=''):
@@ -163,7 +165,9 @@ class MispConverter(object):
     # Populate the event
     rest_event.identifier = unicode(event_header.get('uuid', None))
     if not rest_event.identifier:
-      raise MispMappingException('Cannot find uuid for event {0}'.format(event_header.get('id', '')))
+      message = 'Cannot find uuid for event {0}'.format(event_header.get('id', ''))
+      self.syslogger.error(message)
+      raise MispMappingException(message)
     rest_event.title = u'{0}Event {1}'.format(title_prefix, event_header.get('id', ''))
     rest_event.description = unicode(event_header.get('info', ''))
     rest_event.first_seen = parser.parse(event_header.get('date'))
@@ -182,7 +186,11 @@ class MispConverter(object):
     rest_event.objects = []
     rest_event.comments = []
 
-    rest_event.published = event_header.get('published', '1')
+    published = event_header.get('published', '1')
+    if published == '1':
+      rest_event.properties.is_shareable = True
+    else:
+      rest_event.properties.is_shareable = False
     rest_event.status = u'Confirmed'
     rest_event.originating_group = Group()
     rest_event.originating_group.name = event_header.get('corg', None)
@@ -204,9 +212,13 @@ class MispConverter(object):
           self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
           self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
         else:
-          raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
+          message = 'Composed attribute {0} splits into more than 2 elements'.format(type_)
+          self.syslogger.error(message)
+          raise MispMappingException(message)
       else:
-        raise MispMappingException('Composed attribute {0} cannot be mapped'.format(type_))
+        message = 'Composed attribute {0} cannot be mapped'.format(type_)
+        self.syslogger.error(message)
+        raise MispMappingException(message)
       pass
     elif type_ == 'regkey':
       value = value.replace('/', '\\')
@@ -223,7 +235,9 @@ class MispConverter(object):
         hive = 'HKEY_CLASSES_ROOT'
       else:
         if hive[0:1] == 'H' and hive != 'HKCU_Classes':
-          raise MispMappingException('"{0}" not defined'.format(hive))
+          message = '"{0}" not defined'.format(hive)
+          self.syslogger.error(message)
+          raise MispMappingException(message)
         else:
           hive = None
 
@@ -245,12 +259,17 @@ class MispConverter(object):
         self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
         self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
       else:
-        raise MispMappingException('Composed attribute {0} splits into more than 2 elements'.format(type_))
+        message = 'Composed attribute {0} splits into more than 2 elements'.format(type_)
+        self.syslogger.error(message)
+        raise MispMappingException(message)
 
       # Download the attachment if it exists
       data = self.fetch_attachment(id_, filename_uuid, event.identifier)
       if data:
-        print u'Downloaded file "{0}" id:{1}'.format(filename, id_)
+
+        message = u'Downloaded file "{0}" id:{1}'.format(filename, id_)
+        self.syslogger.info(message)
+        print message
         # build raw_artifact
         raw_artifact = Object()
         raw_artifact.identifier = uuid4()
@@ -260,7 +279,9 @@ class MispConverter(object):
         if raw_artifact.definition:
           raw_artifact.definition_id = raw_artifact.definition.identifier
         else:
-          raise MispMappingException('Could not find object definition Artifact')
+          message = 'Could not find object definition Artifact'
+          self.syslogger.error(message)
+          raise MispMappingException(message)
 
         # add raw artifact
         attr = Attribute()
@@ -269,7 +290,9 @@ class MispConverter(object):
         if attr.definition:
           attr.definition_id = attr.definition.identifier
         else:
-          raise MispMappingException('Could not find attribute definition raw_artifact')
+          message = 'Could not find attribute definition raw_artifact'
+          self.syslogger.error(message)
+          raise MispMappingException(message)
         attr.value = data
         obj.related_objects.append(raw_artifact)
       else:
@@ -290,14 +313,24 @@ class MispConverter(object):
           attribute.is_ioc = True
         else:
           attribute.is_ioc = False
+        attribute.properties.is_shareable = True
 
         obj.attributes.append(attribute)
 
   def get_hash_type(self, value):
-    if len(value) == 32:
-      return 'hash_md5'
+    '''Supports md5, sha1, sha-256, sha-384, sha-512'''
+    hash_types = {32: 'hash_md5',
+                  40: 'hash_sha1',
+                  64: 'hash_sha256',
+                  96: 'hash_sha384',
+                  128: 'hash_sha512',
+                  }
+    if len(value) in hash_types:
+      return hash_types[len(value)]
     else:
-      raise MispMappingException('Cannot map hash {0}'.format(value))
+      message = 'Cannot map hash {0}'.format(value)
+      self.syslogger.error(message)
+      raise MispMappingException(message)
 
   def get_object_definition(self, category, type_, value):
     # compose the correct chksum/name
@@ -421,7 +454,7 @@ class MispConverter(object):
       name = 'file_path'
     elif type_ == 'domain':
       name = 'DomainName_Value'
-    elif type_ == 'email-src' or 'email-dst':
+    elif type_ == 'email-src' or type_ == 'email-dst':
       name = 'email_sender'
     elif type_ == 'email-attachment':
       name = 'email_attachment_file_name'
@@ -534,7 +567,6 @@ class MispConverter(object):
       self.set_properties(obj, share)
       self.set_extended_logging(obj, event)
       observable.object = obj
-
       obj.definition = self.get_object_definition(category, type_, value)
       if obj.definition:
         obj.definition_id = obj.definition.identifier
@@ -573,13 +605,13 @@ class MispConverter(object):
 
     return result_observable
 
-  def map_observable_composition(self, array, event, title=None):
+  def map_observable_composition(self, array, event, title=None, shared):
     result_observable = self.make_observable(event, None, True)
     if title:
       result_observable.title = 'Indicators for "{0}"'.format(title)
     composed_attribute = ObservableComposition()
     composed_attribute.identifier = uuid4()
-    self.set_properties(composed_attribute, True)
+    self.set_properties(composed_attribute, shared)
     result_observable.observable_composition = composed_attribute
 
     for observable in array:
@@ -637,7 +669,6 @@ class MispConverter(object):
       # returns all attributes for all context (i.e. report and normal properties)
       if observable and isinstance(observable, Observable):
         obj = observable.object
-        invalid = True
         attr_def_name = None
         if obj:
           if len(obj.attributes) == 1:
@@ -648,9 +679,13 @@ class MispConverter(object):
                 attr_def_name = attr.definition.name
                 break
           else:
-            raise MispMappingException(u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value))
+            message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value)
+            self.syslogger.error(message)
+            raise MispMappingException(message)
         else:
-          raise MispMappingException(u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value))
+          message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value)
+          self.syslogger.error(message)
+          raise MispMappingException(message)
 
         # TODO make sorting via definitions
         if attr_def_name:
@@ -676,7 +711,7 @@ class MispConverter(object):
     result_observables = list()
 
     if mal_email:
-      observable = self.map_observable_composition(mal_email, event, 'Malicious E-mail')
+      observable = self.map_observable_composition(mal_email, event, 'Malicious E-mail', share)
       if observable:
         indicator = self.map_indicator(observable, 'Malicious E-mail', event)
         result_observables.append(observable)
@@ -685,7 +720,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if artifacts:
-      observable = self.map_observable_composition(artifacts, event, 'Malware Artifacts')
+      observable = self.map_observable_composition(artifacts, event, 'Malware Artifacts', share)
       if observable:
         indicator = self.map_indicator(observable, 'Malware Artifacts', event)
         del artifacts[:]
@@ -694,7 +729,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if ips:
-      observable = self.map_observable_composition(ips, event, 'IP Watchlist')
+      observable = self.map_observable_composition(ips, event, 'IP Watchlist', share)
       if observable:
         indicator = self.map_indicator(observable, 'IP Watchlist', event)
         del ips[:]
@@ -703,7 +738,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if file_hashes:
-      observable = self.map_observable_composition(file_hashes, event, 'File Hash Watchlist')
+      observable = self.map_observable_composition(file_hashes, event, 'File Hash Watchlist', share)
       if observable:
         indicator = self.map_indicator(observable, 'File Hash Watchlist', event)
         del file_hashes[:]
@@ -712,7 +747,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if domains:
-      observable = self.map_observable_composition(domains, event, 'Domain Watchlist')
+      observable = self.map_observable_composition(domains, event, 'Domain Watchlist', share)
       if observable:
         indicator = self.map_indicator(observable, 'Domain Watchlist', event)
         del domains[:]
@@ -721,7 +756,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if c2s:
-      observable = self.map_observable_composition(c2s, event, 'C2')
+      observable = self.map_observable_composition(c2s, event, 'C2', share)
       if observable:
         indicator = self.map_indicator(observable, 'C2', event)
         del c2s[:]
@@ -730,7 +765,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if urls:
-      observable = self.map_observable_composition(urls, event, 'URL Watchlist')
+      observable = self.map_observable_composition(urls, event, 'URL Watchlist', share)
       if observable:
         indicator = self.map_indicator(observable, 'URL Watchlist', event)
         del urls[:]
@@ -739,7 +774,7 @@ class MispConverter(object):
           event.indicators.append(indicator)
 
     if others:
-      observable = self.map_observable_composition(others, event, 'Others')
+      observable = self.map_observable_composition(others, event, 'Others', share)
       if observable:
         indicator = self.map_indicator(observable, None, event)
         del others[:]
@@ -794,7 +829,9 @@ class MispConverter(object):
         makedirs(path)
       return path
     else:
-      raise MispConverterException('Dumping of files was activated but no file location was specified')
+      message = 'Dumping of files was activated but no file location was specified'
+      self.syslogger.error(message)
+      raise MispConverterException(message)
 
   def __dump_files(self, dirname, filename, data):
       path = self.__get_dump_path(self.file_location, dirname)
@@ -831,6 +868,7 @@ class MispConverter(object):
       indicator.observables.append(new_observable)
     else:
       return None
+
     return indicator
 
   def __parse_event_list(self, xml_sting):
@@ -846,7 +884,9 @@ class MispConverter(object):
         if event_id not in event_list:
           event_list[event_id] = {}
         else:
-          raise ValueError('Event collision, API returned the same event twice, should not happen!')
+          message = 'Event collision, API returned the same event twice, should not happen!'
+          self.syslogger.error(message)
+          raise ValueError(message)
 
         for event_id_element in event:
           event_list[event_id][event_id_element.tag] = event_id_element.text
@@ -926,4 +966,6 @@ class MispConverter(object):
     for type_ in self.indicator_types:
       if type_.name == indicator_type:
         return type_
-    raise MispMappingException(u'Indicator type {0} is not defined'.format(indicator_type))
+    message = u'Indicator type {0} is not defined'.format(indicator_type)
+    self.syslogger.error(message)
+    raise MispMappingException(message)

@@ -64,17 +64,29 @@ class Ce1susAPI(object):
     self.ssl_cert = ssl_cert
     self.session = Session()
 
+  def __extract_message(self, error):
+    reason = error.message
+    message = error.response.text
+    code = error.response.status_code
+    """<p>An event with uuid "54f63b0f-0c98-4e74-ab95-60c718689696" already exists</p>"""
+    pos = message.index('<p>') + 3
+    message = message[pos:]
+    pos = message.index('</p>')
+    message = message[:pos]
+    return code, reason, message
+
   def __handle_exception(self, request):
     try:
       request.raise_for_status()
     except requests.exceptions.HTTPError as error:
-      if '403' in error.message or 'Forbidden' in error.message:
-        raise Ce1susForbiddenException('Not authorized.')
-      if '404' in error.message:
-        raise Ce1susNothingFoundException('Item not found ({0})'.format(error))
-      if '500' in error.message:
-        raise Ce1susAPIException('Server Error {0}'.format(error.message))
-      raise Ce1susAPIException('Error ({0})'.format(error))
+      code, reason, message = self.__extract_message(error)
+      message = u'{0} ({1})'.format(reason, message)
+      if code == 403:
+        raise Ce1susForbiddenException(message)
+      elif code == 404:
+        raise Ce1susNothingFoundException(message)
+      else:
+        raise Ce1susAPIException(message)
 
   def __request(self, path, method, clazz, data=None, extra_headers=None):
     try:

@@ -142,9 +142,10 @@ class Event(ExtendedLogingInformations):
       indicators = list()
       for indicator in self.indicators:
         indicators.append(indicator.to_dict(complete, inflated))
-
+      indicators_length = len(indicators)
     else:
       indicators = None
+      indicators_length = -1
       observables = None
       # observables_count = self.observables_count_for_permissions(event_permissions)
       observables_count = -1
@@ -184,7 +185,7 @@ class Event(ExtendedLogingInformations):
                 'comments': comments,
                 'properties': self.properties.to_dict(),
                 'indicators': indicators,
-                'indicators_count': len(indicators),
+                'indicators_count': indicators_length,
                 'groups': groups
                 }
     else:
