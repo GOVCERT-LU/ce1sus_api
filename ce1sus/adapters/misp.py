@@ -24,6 +24,7 @@ from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable, ObservableComposition
 from ce1sus.api.classes.report import Report, Reference
 from ce1sus.helpers.common.config import ConfigException
+from ce1sus.helpers.common.syslogger import Syslogger
 import xml.etree.ElementTree as et
 
 
@@ -128,7 +129,7 @@ class MispConverter(object):
     self.conditions = conditions
     self.dump = False
     self.file_location = None
-    self.log_syslog = False
+    self.syslogger = Syslogger(config)
     try:
       self.dump = config.get('misp', 'dumpmispfiles', False)
       self.file_location = config.get('misp', 'filelocation', None)
@@ -272,7 +273,9 @@ class MispConverter(object):
         attr.value = data
         obj.related_objects.append(raw_artifact)
       else:
-        print u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
+        message = u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
+        print message
+        self.syslogger.warning(message)
 
     else:
       attribute = Attribute()
@@ -320,7 +323,10 @@ class MispConverter(object):
       elif type_ in ['vulnerability', 'malware-sample', 'filename']:
         name = 'file'
       elif type_ in ['text', 'as', 'comment', 'pattern-in-traffic']:
-        print u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+
+        message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+        print message
+        self.syslogger.warning(message)
         return None
       elif 'snort' in type_:
         name = 'IDSRule'
@@ -344,7 +350,9 @@ class MispConverter(object):
       else:
         raise MispMappingException('Type {0} not defined'.format(type_))
     elif category in ['targeting data']:
-      print u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+      message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+      print message
+      self.syslogger.warning(message)
       return None
     if name or chksum:
       # search for it
@@ -355,6 +363,7 @@ class MispConverter(object):
     # if here no def was found raise exception
     message = u'No object definition for {0}/{1} and value "{2}" can be found'.format(category, type_, value)
     print message
+    self.syslogger.error(message)
     raise MispMappingException(message)
 
   def get_reference_definition(self, category, type_, value):
@@ -375,6 +384,7 @@ class MispConverter(object):
     # if here no def was found raise exception
     message = u'No reference definition for {0}/{1} and value "{2}" can be found'.format(category, type_, value)
     print message
+    self.syslogger.error(message)
     raise MispMappingException(message)
 
   def get_condition(self, condition):
@@ -468,6 +478,7 @@ class MispConverter(object):
 
     message = u'No attribute definition for {0}/{1} and value {2} can be found {3}'.format(category, type_, value, name)
     print message
+    self.syslogger.error(message)
     raise MispMappingException(message)
 
   def __find_attr_def(self, name, chksum):
