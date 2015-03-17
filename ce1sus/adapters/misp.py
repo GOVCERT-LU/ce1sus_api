@@ -605,7 +605,7 @@ class MispConverter(object):
 
     return result_observable
 
-  def map_observable_composition(self, array, event, title=None, shared):
+  def map_observable_composition(self, array, event, title, shared):
     result_observable = self.make_observable(event, None, True)
     if title:
       result_observable.title = 'Indicators for "{0}"'.format(title)
@@ -639,7 +639,6 @@ class MispConverter(object):
       data = None
       ioc = 0
       share = 1
-      distribution = 0
       comment = ''
       uuid = None
 
@@ -658,8 +657,6 @@ class MispConverter(object):
             data = e.text
           elif e.tag == 'id':
             id_ = e.text
-          elif e.tag == 'distribution':
-            distribution = int(e.text)
           elif e.tag == 'comment':
             comment = e.text
           elif e.tag == 'uuid':
