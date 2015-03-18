@@ -46,23 +46,23 @@ class Syslogger(object):
   def debug(self, message):
     if self.log_syslog and self.level >= 3:
       syslog.syslog(syslog.LOG_DEBUG, u'[DEBUG] {0}'.format(message))
-    if self.log_console:
-      print u'[DEBUG] {0}'.format(message)
+      if self.log_console:
+        print u'[DEBUG] {0}'.format(message)
 
   def info(self, message):
     if self.log_syslog and self.level >= 2:
       syslog.syslog(syslog.LOG_INFO, u'[INFO] {0}'.format(message))
-    if self.log_console:
-      print u'[INFO] {0}'.format(message)
+      if self.log_console:
+        print u'[INFO] {0}'.format(message)
 
   def warning(self, message):
     if self.log_syslog and self.level >= 1:
       syslog.syslog(syslog.LOG_WARNING, u'[WARNING] {0}'.format(message))
-    if self.log_console:
-      print u'[WARNING] {0}'.format(message)
+      if self.log_console:
+        print u'[WARNING] {0}'.format(message)
 
   def error(self, message):
     if self.log_syslog and self.level >= 0:
       syslog.syslog(syslog.LOG_ERR, u'[ERROR] {0}'.format(message))
-    if self.log_console:
-      print u'[ERROR] {0}'.format(message)
+      if self.log_console:
+        print u'[ERROR] {0}'.format(message)
