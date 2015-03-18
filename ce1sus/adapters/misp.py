@@ -5,6 +5,7 @@
 
 Created on Feb 20, 2015
 """
+from StringIO import StringIO
 from ce1sus_api.helpers.datumzait import DatumZait
 from copy import deepcopy
 from dateutil import parser
@@ -117,7 +118,7 @@ class MispConverter(object):
     return {'Accept': 'application/xml',
             'Authorization': self.api_key}
 
-  def __init__(self, config, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
+  def __init__(self, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
     self.api_url = api_url
     self.api_key = api_key
     self.api_headers = self.get_api_header_parameters()
@@ -129,18 +130,9 @@ class MispConverter(object):
     self.conditions = conditions
     self.dump = False
     self.file_location = None
-    self.syslogger = Syslogger(config)
-    try:
-      self.dump = config.get('misp', 'dumpmispfiles', False)
-      self.file_location = config.get('misp', 'filelocation', None)
-      self.temp_folder = config.get('misp', 'tempfolder', None)
-      if not self.temp_folder:
-        message = 'Temp folder was not specified in configuartion'
-        self.syslogger.error(message)
-        raise ConfigException(message)
-    except ConfigException as error:
-      self.syslogger.error(error)
-      raise MispConverterException(error)
+    self.syslogger = Syslogger()
+    self.dump = False
+    self.file_location = '/tmp'
 
   def set_event_header(self, event, rest_event, title_prefix=''):
     event_header = {}
@@ -264,7 +256,7 @@ class MispConverter(object):
         raise MispMappingException(message)
 
       # Download the attachment if it exists
-      data = self.fetch_attachment(id_, filename_uuid, event.identifier)
+      data = self.fetch_attachment(id_, filename_uuid, event.identifier, filename)
       if data:
 
         message = u'Downloaded file "{0}" id:{1}'.format(filename, id_)
@@ -915,52 +907,41 @@ class MispConverter(object):
 
     return result
 
-  def fetch_attachment(self, attribute_id, uuid, event_uuid):
+  def fetch_attachment(self, attribute_id, uuid, event_uuid, filename):
     url = '{0}/attributes/download/{1}'.format(self.api_url, attribute_id)
     try:
       result = None
       req = urllib2.Request(url, None, self.api_headers)
       resp = urllib2.urlopen(req).read()
-      path = self.__get_dump_path(self.temp_folder, event_uuid)
-      tmp_file = '{0}/{1}'.format(path, '{0}.zip'.format(uuid))
-      f = open(tmp_file, 'w+')
-      f.write(resp)
-      f.close()
-      tmp_ex_folder = '{0}/{1}'.format(path, '{0}'.format(uuid))
-      if not isdir(tmp_ex_folder):
-        makedirs(tmp_ex_folder)
-      # unzip the file
-      zip_file = ZipFile(tmp_file, 'r')
+      binary = StringIO(resp)
+      zip_file = ZipFile(binary)
       zip_file.setpassword('infected'.encode('utf-8'))
-      zip_file.extractall(tmp_ex_folder)
-      zip_file.close()
-      # remove zip
-      remove(tmp_file)
-
-      # see what the files are called and how many
-      files = list()
-      for f in listdir(tmp_ex_folder):
-        if isfile(join(tmp_ex_folder, f)):
-          files.append(join(tmp_ex_folder, f))
-
-      if len(files) == 1:
-        # can only handle one single file
-        f = open(files[0], 'rb')
-        result = f.read()
-        f.close()
-
       if self.dump:
-        self.__dump_files(event_uuid, '{0}.zip'.format(uuid), resp)
-        # move folder of extracted files
-        dest = self.__get_dump_path(self.file_location, event_uuid)
-        # copy only if file loc and temp loc differ
-        if '{0}/{1}'.format(dest, uuid) != tmp_ex_folder:
-          copy(tmp_ex_folder, dest)
-          rmtree(tmp_ex_folder)
-      else:
-        # remve directory
-        rmtree(tmp_ex_folder)
 
+        path = self.__get_dump_path(self.file_location, event_uuid)
+        destination_folder = '{0}/{1}'.format(path, '')
+        if not isdir(destination_folder):
+          makedirs(destination_folder)
+        # save zip file
+
+        f = open('{0}/{1}.zip'.format(destination_folder, filename), 'w+')
+        f.write(resp)
+        f.close()
+        extraction_destination = '{0}/{1}.zip_contents'.format(destination_folder, filename)
+        if not isdir(extraction_destination):
+          makedirs(extraction_destination)
+        # unzip the file
+        zip_file.extractall(extraction_destination)
+
+      # do everything in memory
+      zipfiles = zip_file.filelist
+
+      for zipfile in zipfiles:
+        filename = zipfile.filename
+        result = zip_file.read(filename)
+        break
+
+      zip_file.close()
       return result
     except urllib2.HTTPError:
       return None
