@@ -90,6 +90,8 @@ if __name__ == '__main__':
     sys.exit(1)
 
   mist_adapter = MispConverter(adapter_config, misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
+  if options.verbose:
+    mist_adapter.syslogger.verbose = True
 
   rest_event = None
   rest_events = None

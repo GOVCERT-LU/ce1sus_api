@@ -7,7 +7,7 @@ Created on Feb 4, 2015
 """
 import json
 import requests
-from requests.sessions import Session
+from requests.sessions import session
 
 from ce1sus.api.classes.attribute import Attribute, Condition
 from ce1sus.api.classes.event import Event
@@ -54,25 +54,29 @@ class Ce1susAPI(object):
   def __init__(self,
                apiUrl,
                apiKey,
-               proxies=dict(),
+               proxies={},
                verify_ssl=False,
-               ssl_cert=False):
+               ssl_cert=None):
     self.apiUrl = '{0}/REST/0.3.0'.format(apiUrl)
     self.apiKey = apiKey
     self.proxies = proxies
     self.verify_ssl = verify_ssl
     self.ssl_cert = ssl_cert
-    self.session = Session()
+    self.session = session()
 
   def __extract_message(self, error):
     reason = error.message
     message = error.response.text
     code = error.response.status_code
     """<p>An event with uuid "54f63b0f-0c98-4e74-ab95-60c718689696" already exists</p>"""
-    pos = message.index('<p>') + 3
-    message = message[pos:]
-    pos = message.index('</p>')
-    message = message[:pos]
+    try:
+      pos = message.index('<p>') + 3
+      message = message[pos:]
+      pos = message.index('</p>')
+      message = message[:pos]
+    except ValueError:
+      # In case the message is not parsable
+      pass
     return code, reason, message
 
   def __handle_exception(self, request):
@@ -92,6 +96,7 @@ class Ce1susAPI(object):
     try:
       url = '{0}/{1}'.format(self.apiUrl, path)
       headers = {'Content-Type': 'application/json; charset=utf-8',
+                 'User-Agent': 'Ce1sus API client 0.11',
                  'key': self.apiKey}
       if extra_headers:
         for key, value in extra_headers.items():

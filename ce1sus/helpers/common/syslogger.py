@@ -20,7 +20,8 @@ class SysloggerExcepton(Exception):
 
 class Syslogger(object):
 
-  def __init__(self, config):
+  def __init__(self, config, verbose=False):
+    self.verbose = verbose
     if config:
       level = config.get('syslogger', 'level', 'error').lower()
       self.log_syslog = config.get('syslogger', 'logtosyslog', False)
@@ -29,6 +30,8 @@ class Syslogger(object):
       self.log_syslog = False
     self.level = self.__get_level_id(level)
     self.info('Syslog enabled')
+
+
 
   def __get_level_id(self, level):
     if level == 'debug':
@@ -44,18 +47,25 @@ class Syslogger(object):
   def debug(self, message):
     if self.log_syslog and self.level >= 3:
       syslog.syslog(syslog.LOG_DEBUG, u'[DEBUG] {0}'.format(message))
+    if self.verbose:
+      print u'[DEBUG] {0}'.format(message)
 
   def info(self, message):
     if self.log_syslog and self.level >= 2:
       syslog.syslog(syslog.LOG_INFO, u'[INFO] {0}'.format(message))
+    if self.verbose:
+      print u'[INFO] {0}'.format(message)
 
   def warning(self, message):
     if self.log_syslog and self.level >= 1:
       syslog.syslog(syslog.LOG_WARNING, u'[WARNING] {0}'.format(message))
+    if self.verbose:
+      print u'[WARNING] {0}'.format(message)
 
   def error(self, message):
     if self.log_syslog and self.level >= 0:
       syslog.syslog(syslog.LOG_ERR, u'[ERROR] {0}'.format(message))
-
+    if self.verbose:
+      print u'[ERROR] {0}'.format(message)
 
 

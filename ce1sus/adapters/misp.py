@@ -630,8 +630,8 @@ class MispConverter(object):
     artifacts = list()
     c2s = list()
     others = list()
-
-    for attrib in misp_event.iter(tag='Attribute'):
+    attrs = misp_event.iter(tag='Attribute')
+    for attrib in attrs:
       type_ = ''
       value = ''
       category = ''
@@ -661,50 +661,52 @@ class MispConverter(object):
             comment = e.text
           elif e.tag == 'uuid':
             uuid = e.text
-
-      observable = self.create_observable(id_, uuid, category, type_, value, data, comment, ioc, share, event)
-      # returns all attributes for all context (i.e. report and normal properties)
-      if observable and isinstance(observable, Observable):
-        obj = observable.object
-        attr_def_name = None
-        if obj:
-          if len(obj.attributes) == 1:
-            attr_def_name = obj.attributes[0].definition.name
-          elif len(obj.attributes) == 2:
-            for attr in obj.attributes:
-              if 'hash' in attr.definition.name:
-                attr_def_name = attr.definition.name
-                break
+      # ignore empty values:
+      if value:
+        observable = self.create_observable(id_, uuid, category, type_, value, data, comment, ioc, share, event)
+        # returns all attributes for all context (i.e. report and normal properties)
+        if observable and isinstance(observable, Observable):
+          obj = observable.object
+          attr_def_name = None
+          if obj:
+            if len(obj.attributes) == 1:
+              attr_def_name = obj.attributes[0].definition.name
+            elif len(obj.attributes) == 2:
+              for attr in obj.attributes:
+                if 'hash' in attr.definition.name:
+                  attr_def_name = attr.definition.name
+                  break
+            else:
+              message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value)
+              self.syslogger.error(message)
+              raise MispMappingException(message)
           else:
-            message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value)
+            message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value)
             self.syslogger.error(message)
             raise MispMappingException(message)
-        else:
-          message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value)
-          self.syslogger.error(message)
-          raise MispMappingException(message)
 
-        # TODO make sorting via definitions
-        if attr_def_name:
-          if 'raw' in attr_def_name:
-            artifacts.append(observable)
-          elif 'c&c' in attr_def_name:
-            c2s.append(observable)
-          elif 'ipv' in attr_def_name:
-            ips.append(observable)
-          elif 'hash' in attr_def_name:
-            file_hashes.append(observable)
-          elif 'email' in attr_def_name:
-            mal_email.append(observable)
-          elif 'domain' in attr_def_name or 'hostname' in attr_def_name:
-            domains.append(observable)
-          elif 'url' in attr_def_name:
-            urls.append(observable)
+          # TODO make sorting via definitions
+          if attr_def_name:
+            if 'raw' in attr_def_name:
+              artifacts.append(observable)
+            elif 'c&c' in attr_def_name:
+              c2s.append(observable)
+            elif 'ipv' in attr_def_name:
+              ips.append(observable)
+            elif 'hash' in attr_def_name:
+              file_hashes.append(observable)
+            elif 'email' in attr_def_name:
+              mal_email.append(observable)
+            elif 'domain' in attr_def_name or 'hostname' in attr_def_name:
+              domains.append(observable)
+            elif 'url' in attr_def_name:
+              urls.append(observable)
+            else:
+              others.append(observable)
           else:
             others.append(observable)
-        else:
-          others.append(observable)
-
+      else:
+        self.syslogger.warning('Dropped empty attribute')
     result_observables = list()
 
     if mal_email:
@@ -779,7 +781,11 @@ class MispConverter(object):
         if indicator:
           event.indicators.append(indicator)
 
-    return result_observables
+    if result_observables:
+      return result_observables
+    else:
+      self.syslogger.warning('Event {0} does not contain attributes. None detected'.format(event.identifier))
+      return result_observables
 
   def parse_events(self, xml):
     events = xml.iterfind('./Event')
