@@ -8,8 +8,6 @@ import sys
 
 from ce1sus.adapters.misp import MispConverter
 from ce1sus.api.ce1susapi import Ce1susAPI
-from billiard import Event
-
 
 __author__ = 'Georges Toth'
 __email__ = 'georges.toth@govcert.etat.lu'

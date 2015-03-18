@@ -9,10 +9,9 @@ from StringIO import StringIO
 from ce1sus_api.helpers.datumzait import DatumZait
 from copy import deepcopy
 from dateutil import parser
-from os import makedirs, remove, listdir
-from os.path import isdir, isfile, join
+from os import makedirs, remove
+from os.path import isdir, isfile
 import re
-from shutil import rmtree, copy
 import urllib2
 from uuid import uuid4
 from zipfile import ZipFile
@@ -24,7 +23,6 @@ from ce1sus.api.classes.indicator import Indicator
 from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable, ObservableComposition
 from ce1sus.api.classes.report import Report, Reference
-from ce1sus.helpers.common.config import ConfigException
 from ce1sus.helpers.common.syslogger import Syslogger
 import xml.etree.ElementTree as et
 
