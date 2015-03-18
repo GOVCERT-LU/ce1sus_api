@@ -78,8 +78,7 @@ if __name__ == '__main__':
   ce1sus_api.logout()
 
   misp_adapter = MispConverter(misp_api_url, misp_api_key, o_defs, a_defs, r_defs, if_defs, con_defs, misp_tag)
-  if options.verbose:
-    misp_adapter.syslogger.log_console = True
+  misp_adapter.syslogger.log_console = True
 
   rest_event = None
   rest_events = None
