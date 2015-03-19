@@ -27,7 +27,7 @@ if __name__ == '__main__':
                     help='verbose output')
   parser.add_option('-d', dest='dryrun', action='store_true', default=False,
                     help='dry-run, do not store anything in ce1sus')
-  parser.add_option('-r', dest='recent', type='string', default='0',
+  parser.add_option('-r', dest='recent', type='int', default=20,
                     help='import the recent x events')
   parser.add_option('-f', dest='file', type='string', default='',
                     help='MISP XML File')

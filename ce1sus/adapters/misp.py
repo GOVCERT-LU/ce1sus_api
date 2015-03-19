@@ -362,6 +362,11 @@ class MispConverter(object):
         name = 'Mutex'
       elif 'pipe' in type_:
         name = 'Pipe'
+      elif type_ == 'text':
+        message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+        print message
+        self.syslogger.warning(message)
+        return None
       else:
         name = 'Artifact'
     elif category in ['external analysis']:
@@ -528,6 +533,7 @@ class MispConverter(object):
       reference = self.create_reference(uuid, category, type_, value, data, comment, ioc, share, event)
       if len(event.reports) == 0:
         report = Report()
+        report.identifier = uuid4()
         self.set_extended_logging(report, event)
         if comment:
           if report.description:
@@ -541,6 +547,7 @@ class MispConverter(object):
       reference.value = u'Attribution: '.format(reference.value)
       if len(event.reports) == 0:
         report = Report()
+        report.identifier = uuid4()
         self.set_extended_logging(report, event)
         if comment:
           if report.description:
@@ -888,12 +895,8 @@ class MispConverter(object):
   def get_recent_events(self, limit=20, unpublished=False):
     url = '{0}/events/index/sort:date/direction:desc/limit:{1}'.format(self.api_url, limit)
     print url
-    # req = urllib2.Request(url, None, self.api_headers)
-    # xml_sting = urllib2.urlopen(req).read()
-    f = open('recent.xml', 'r')
-    # f.write(xml_sting)
-    xml_sting = f.read()
-    f.close()
+    req = urllib2.Request(url, None, self.api_headers)
+    xml_sting = urllib2.urlopen(req).read()
 
     result = list()
 
