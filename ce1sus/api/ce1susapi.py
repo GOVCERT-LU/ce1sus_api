@@ -354,13 +354,16 @@ class Ce1susAPI(object):
     fields = self.__get_search_attributes()
     identifier = None
     for field in fields:
+      field_name = field['name']
       if is_report:
-        if attribute_name in field.name and 'report' in field.name:
-          identifier = field.identifier
+        if attribute_name in field_name and 'report' in field_name:
+          identifier = field['identifier']
+          identifier = identifier.split(':')
+          identifier = identifier[1]
           break
       else:
-        if attribute_name in field.name and 'attribtue' in field.name:
-          identifier = field.identifier
+        if attribute_name in field_name:
+          identifier = field['identifier']
           break
     if identifier:
       return identifier

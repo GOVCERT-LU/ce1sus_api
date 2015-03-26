@@ -153,12 +153,13 @@ class MispConverter(object):
       event_header['tlp'] = MispConverter.distribution_to_tlp_map[event_header['distribution']]
 
     # Populate the event
+    event_id = event_header.get('id', '')
     rest_event.identifier = unicode(event_header.get('uuid', None))
     if not rest_event.identifier:
-      message = 'Cannot find uuid for event {0}'.format(event_header.get('id', ''))
+      message = 'Cannot find uuid for event {0}'.format(event_id)
       self.syslogger.error(message)
       raise MispMappingException(message)
-    rest_event.title = u'{0}Event {1}'.format(title_prefix, event_header.get('id', ''))
+    rest_event.title = u'{0}Event {1}'.format(title_prefix, event_id)
     rest_event.description = unicode(event_header.get('info', ''))
     rest_event.first_seen = parser.parse(event_header.get('date'))
     rest_event.tlp = event_header.get('tlp', 'amber')
@@ -187,6 +188,7 @@ class MispConverter(object):
     rest_event.creator_group = Group()
     rest_event.creator_group.name = event_header.get('org', None)
     rest_event.modifier = rest_event.creator_group
+    return event_id
 
   def append_attributes(self, obj, observable, id_, category, type_, value, ioc, share, event, uuid):
     if '|' in type_:
@@ -400,13 +402,15 @@ class MispConverter(object):
     name = None
     if type_ == 'url':
       name = 'link'
+    elif type_ == 'text':
+      name = 'comment'
     else:
       name = type_
 
     if name or chksum:
       # search for it
       for reference_definition in self.reference_definitions:
-        if reference_definition.chksum == chksum or reference_definition.name == name:
+        if reference_definition.name == name:
           return reference_definition
 
     # if here no def was found raise exception
@@ -520,6 +524,7 @@ class MispConverter(object):
   def create_reference(self, uuid, category, type_, value, data, comment, ioc, share, event):
     reference = Reference()
     # TODO map reference
+    reference.identifier = uuid
     reference.definition = self.get_reference_definition(category, type_, value)
     reference.definition_id = reference.definition.identifier
     reference.value = value
@@ -791,11 +796,36 @@ class MispConverter(object):
     for event in events:
       rest_event = Event()
 
-      self.set_event_header(event, rest_event)
+      event_id = self.set_event_header(event, rest_event)
 
       observables = self.parse_attributes(rest_event, event)
       rest_event.observables = observables
+      # Append reference
 
+      result = list()
+
+      report = Report()
+      report.identifier = uuid4()
+      self.set_extended_logging(report, rest_event)
+      value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
+      reference = self.create_reference(uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event)
+      report.references.append(reference)
+      value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
+      reference = self.create_reference(uuid4(), None, 'link', value, None, None, False, False, rest_event)
+      report.references.append(reference)
+
+      result.append(report)
+
+      # check if there aren't any empty reports
+
+      for event_report in rest_event.reports:
+        if event_report.references:
+          continue
+        else:
+          result.append(event_report)
+
+      rest_event.reports = result
+      setattr(rest_event, 'misp_id', event_id)
       rest_events.append(rest_event)
 
     return rest_events
@@ -894,7 +924,6 @@ class MispConverter(object):
 
   def get_recent_events(self, limit=20, unpublished=False):
     url = '{0}/events/index/sort:date/direction:desc/limit:{1}'.format(self.api_url, limit)
-    print url
     req = urllib2.Request(url, None, self.api_headers)
     xml_sting = urllib2.urlopen(req).read()
 

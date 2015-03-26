@@ -46,6 +46,7 @@ class ReferenceDefinition(RestObject):
               }
 
   def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.name = json.get('name', None)
     self.description = json.get('description', None)
     self.referencehandler_id = json.get('referencehandler_id', None)

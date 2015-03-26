@@ -82,7 +82,7 @@ class Observable(ExtendedLogingInformations):
     self.properties = Properties('0')
     self.object = None
     self.description = None
-    self.observable_composition = None
+    self.observable_composition = list()
     self.related_observables = list()
     self.modifier = None
     self.event_id = None
