@@ -150,18 +150,26 @@ class MispConverter(object):
       if m:
         event_header['tlp'] = m.group(1).lower()
     else:
-      event_header['tlp'] = MispConverter.distribution_to_tlp_map[event_header['distribution']]
+      try:
+        event_header['tlp'] = MispConverter.distribution_to_tlp_map[event_header['distribution']]
+      except KeyError:
+        event_header['tlp'] = 'amber'
 
     # Populate the event
     event_id = event_header.get('id', '')
-    rest_event.identifier = unicode(event_header.get('uuid', None))
+    rest_event.identifier = event_header.get('uuid', None)
     if not rest_event.identifier:
-      message = 'Cannot find uuid for event {0}'.format(event_id)
-      self.syslogger.error(message)
-      raise MispMappingException(message)
+      message = 'Cannot find uuid for event {0} generating one'.format(event_id)
+      self.syslogger.warning(message)
+      # raise MispMappingException(message)
+      rest_event.identifier = u'{0}'.format(uuid4())
     rest_event.title = u'{0}Event {1}'.format(title_prefix, event_id)
     rest_event.description = unicode(event_header.get('info', ''))
-    rest_event.first_seen = parser.parse(event_header.get('date'))
+    date = event_header.get('date', None)
+    if date:
+      rest_event.first_seen = parser.parse(date)
+    else:
+      rest_event.first_seen = DatumZait.utcnow()
     rest_event.tlp = event_header.get('tlp', 'amber')
     rest_event.risk = event_header.get('risk', 'None')
     # event.uuid = event_header.get('uuid', None)
