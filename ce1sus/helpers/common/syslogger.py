@@ -29,10 +29,10 @@ class Syslogger(object):
       level = 'info'
       self.log_syslog = False
       self.log_console = True
-    self.level = self.__get_level_id(level)
+    self.level = self.get_level_id(level)
     self.info('Syslog enabled')
 
-  def __get_level_id(self, level):
+  def get_level_id(self, level):
     if level == 'debug':
       return 3
     elif level == 'info':

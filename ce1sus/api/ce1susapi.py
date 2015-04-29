@@ -274,14 +274,11 @@ class Ce1susAPI(object):
                                 data=attribute.to_dict(True, True))
     return rest_event
 
-  def login(self, apikey):
-    headers = dict()
-    headers['key'] = apikey
+  def login(self):
     text = self.__request('/login',
                           'POST',
                           None,
-                          None,
-                          headers
+                          None
                           )
     return json.loads(text)
 
