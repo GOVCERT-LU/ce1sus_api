@@ -339,7 +339,7 @@ class MispConverter(object):
     if category == 'Artifact':
       name = category
     elif type_ in ['filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'] or category in ['antivirus detection']:
-      name = 'file'
+      name = 'File'
     elif type_ in ['domain']:
       name = 'DomainName'
     elif type_ in ['email-src', 'email-attachment', 'email-subject', 'email-dst']:
@@ -354,7 +354,7 @@ class MispConverter(object):
       elif type_ in ['http-method', 'user-agent']:
         name = 'HTTPSession'
       elif type_ in ['vulnerability', 'malware-sample', 'filename']:
-        name = 'file'
+        name = 'File'
       elif type_ in ['text', 'as', 'comment', 'pattern-in-traffic']:
 
         message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
@@ -364,7 +364,7 @@ class MispConverter(object):
       elif 'snort' in type_:
         name = 'IDSRule'
     elif category in ['payload type', 'payload installation']:
-      name = 'file'
+      name = 'File'
     elif category in ['artifacts dropped']:
       if 'yara' in type_ or 'snort' in type_:
         name = 'IDSRule'
@@ -381,7 +381,7 @@ class MispConverter(object):
         name = 'Artifact'
     elif category in ['external analysis']:
       if type_ == 'malware-sample':
-        name = 'file'
+        name = 'File'
     elif category in ['persistence mechanism']:
       if type_ == 'regkey':
         name = 'WindowsRegistryKey'
