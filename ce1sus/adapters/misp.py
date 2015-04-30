@@ -250,7 +250,7 @@ class MispConverter(object):
       filename_uuid = uuid
       splitted = value.split('|')
       if len(splitted) == 2:
-        first_type = 'file_name'
+        first_type = 'File_Name'
 
         first_value = splitted[0]
         filename = first_value
@@ -456,7 +456,7 @@ class MispConverter(object):
     elif type_ in ['md5', 'sha1', 'sha256']:
       name = u'hash_{0}'.format(type_)
     elif type_ in ['filename']:
-      name = 'file_name'
+      name = 'File_Name'
     elif type_ == 'filename' and ('\\' in value or '/' in value):
       name = 'file_path'
     elif type_ == 'domain':
@@ -501,7 +501,7 @@ class MispConverter(object):
         return None
     elif category == 'payload installation':
       if type_ == 'attachment':
-        name = 'file_name'
+        name = 'File_Name'
     if not name:
       name = type_.replace('-', '_').replace(' ', '_')
 
