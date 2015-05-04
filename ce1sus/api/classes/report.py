@@ -5,9 +5,8 @@
 
 Created on Jan 8, 2015
 """
-from ce1sus_api.api.restclasses import RestObject
 
-from ce1sus.api.classes.base import ExtendedLogingInformations
+from ce1sus.api.classes.base import ExtendedLogingInformations, RestBase
 from ce1sus.api.classes.common import ValueException, Properties
 
 
@@ -19,10 +18,10 @@ __license__ = 'GPL v3+'
 # Note: This is not yet part of STIX should be on 1.2
 
 
-class ReferenceDefinition(RestObject):
+class ReferenceDefinition(RestBase):
 
   def __init__(self):
-    RestObject.__init__(self)
+    RestBase.__init__(self)
     self.name = None
     self.description = None
     self.referencehandler_id = None

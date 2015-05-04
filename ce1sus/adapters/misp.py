@@ -6,8 +6,8 @@
 Created on Feb 20, 2015
 """
 from StringIO import StringIO
-from ce1sus_api.helpers.datumzait import DatumZait
 from copy import deepcopy
+from datetime import datetime
 from dateutil import parser
 from os import makedirs, remove
 from os.path import isdir, isfile
@@ -169,7 +169,7 @@ class MispConverter(object):
     if date:
       rest_event.first_seen = parser.parse(date)
     else:
-      rest_event.first_seen = DatumZait.utcnow()
+      rest_event.first_seen = datetime.utcnow()
     rest_event.tlp = event_header.get('tlp', 'amber')
     rest_event.risk = event_header.get('risk', 'None')
     # event.uuid = event_header.get('uuid', None)
@@ -412,6 +412,8 @@ class MispConverter(object):
       name = 'link'
     elif type_ == 'text':
       name = 'comment'
+    elif type_ == 'attachment':
+      name = 'raw_file'
     else:
       name = type_
 
@@ -610,8 +612,8 @@ class MispConverter(object):
 
     self.set_properties(result_observable, shared)
 
-    result_observable.created_at = DatumZait.utcnow()
-    result_observable.modified_on = DatumZait.utcnow()
+    result_observable.created_at = datetime.utcnow()
+    result_observable.modified_on = datetime.utcnow()
 
     return result_observable
 
@@ -840,8 +842,8 @@ class MispConverter(object):
 
   def set_extended_logging(self, instance, event):
     instance.creator_group = event.creator_group
-    instance.created_at = DatumZait.utcnow()
-    instance.modified_on = DatumZait.utcnow()
+    instance.created_at = datetime.utcnow()
+    instance.modified_on = datetime.utcnow()
     instance.modifier = event.creator_group
     instance.originating_group = instance.creator_group
 
@@ -858,9 +860,9 @@ class MispConverter(object):
     return rest_events[0]
 
   def __get_dump_path(self, base, dirname):
-    sub_path = '{0}/{1}/{2}'.format(DatumZait.now().year,
-                                    DatumZait.now().month,
-                                    DatumZait.now().day)
+    sub_path = '{0}/{1}/{2}'.format(datetime.now().year,
+                                    datetime.now().month,
+                                    datetime.now().day)
     if self.file_location:
       path = '{0}/{1}/{2}'.format(base, sub_path, dirname)
       if not isdir(path):

@@ -5,8 +5,8 @@
 
 Created on Oct 16, 2014
 """
+from ce1sus.api.classes.base import RestBase
 from ce1sus.helpers.bitdecoder import BitBase
-from ce1sus_api.api.restclasses import RestObject
 
 
 __author__ = 'Weber Jean-Paul'
@@ -159,10 +159,10 @@ class EventPermissions(BitBase):
     self.set_groups = json.get('set_groups', False)
 
 
-class Group(RestObject):
+class Group(RestBase):
 
   def __init__(self):
-    RestObject.__init__(self)
+    RestBase.__init__(self)
     self.name = None
     self.permissions = GroupRights('0')
     self.default_permissions = EventPermissions('0')

@@ -5,9 +5,8 @@
 
 Created on Feb 18, 2015
 """
-from ce1sus_api.api.restclasses import RestObject
-
 from ce1sus.api.classes.attribute import Attribute
+from ce1sus.api.classes.base import RestBase
 from ce1sus.api.classes.event import Event
 from ce1sus.api.classes.object import Object
 from ce1sus.api.classes.observables import Observable
@@ -20,9 +19,10 @@ __copyright__ = 'Copyright 2013-2014, GOVCERT Luxembourg'
 __license__ = 'GPL v3+'
 
 
-class SearchResult(RestObject):
+class SearchResult(RestBase):
 
   def __init__(self):
+    RestBase.__init__(RestBase)
     self.event = None
     self.object = None
     self.observable = None

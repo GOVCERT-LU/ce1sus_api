@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from ce1sus_api.helpers.config import Configuration, ConfigKeyNotFoundException, ConfigException
+from ce1sus.helpers.common.config import Configuration, ConfigKeyNotFoundException, ConfigException
 import json
 from optparse import OptionParser
 import os
@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
   ce1sus_api = Ce1susAPI(ce1sus_api_url, ce1sus_api_key, verify_ssl=False)
 
-  ce1sus_api.login(ce1sus_api_key)
+  ce1sus_api.login()
   o_defs = ce1sus_api.get_object_definitions(True)
   a_defs = ce1sus_api.get_attribute_definitions(True)
   r_defs = ce1sus_api.get_reference_definitions(True)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
   elif options.recent > 0:
     rest_events = misp_adapter.get_recent_events(options.recent)
 
-  ce1sus_api.login(ce1sus_api_key)
+  ce1sus_api.login()
   try:
     if rest_events:
       for event in rest_events:
