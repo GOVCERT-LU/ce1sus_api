@@ -164,10 +164,10 @@ class Group(RestBase):
   def __init__(self):
     RestBase.__init__(self)
     self.name = None
-    self.permissions = GroupRights('0')
-    self.default_permissions = EventPermissions('0')
     self.description = None
     self.email = None
+    self.permissions = GroupRights('0')
+    self.default_permissions = EventPermissions('0')
     self.gpg_key = None
 
   def to_dict(self, complete=True, inflated=False):
@@ -175,8 +175,6 @@ class Group(RestBase):
       return {'identifier': self.convert_value(self.identifier),
               'name': self.convert_value(self.name),
               'description': self.convert_value(self.description),
-              'permissions': self.permissions.to_dict(),
-              'default_event_permissions': self.default_permissions.to_dict(),
               'email': self.convert_value(self.email),
               'gpg_key': self.convert_value(self.gpg_key),
               'children': dict(),

@@ -355,7 +355,9 @@ class MispConverter(object):
         name = 'HTTPSession'
       elif type_ in ['vulnerability', 'malware-sample', 'filename']:
         name = 'File'
-      elif type_ in ['text', 'as', 'comment', 'pattern-in-traffic']:
+      elif type_ == 'pattern-in-traffic':
+        name = 'forensic_records'
+      elif type_ in ['text', 'as', 'comment']:
 
         message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
         print message
@@ -408,7 +410,12 @@ class MispConverter(object):
     # compose the correct chksum/name
     chksum = None
     name = None
-    if type_ == 'url':
+    if category == 'artifacts dropped' and type_ == 'other':
+      message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+      print message
+      self.syslogger.warning(message)
+      return None
+    elif type_ == 'url':
       name = 'link'
     elif type_ == 'text':
       name = 'comment'
@@ -444,7 +451,7 @@ class MispConverter(object):
       name = type_
 
     if 'pattern' in type_:
-      attribute.condition = self.get_condition('Like')
+      attribute.condition = self.get_condition('FitsPattern')
     else:
       attribute.condition = self.get_condition('Equals')
 
@@ -453,6 +460,8 @@ class MispConverter(object):
 
     elif type_ == 'pattern-in-file':
       name = 'pattern-in-file'
+    elif type_ == 'pattern-in-traffic':
+      name = 'pattern-in-traffic'
     elif type_ == 'pattern-in-memory':
       name = 'pattern-in-memory'
     elif type_ in ['md5', 'sha1', 'sha256']:
@@ -483,7 +492,7 @@ class MispConverter(object):
       elif type_ in ['url']:
         name = 'url'
         if type_ == 'url' and '://' not in value:
-          attribute.condition = 'Like'
+          attribute.condition = self.get_condition('FitsPattern')
       elif type_ == 'http-method':
         name = 'HTTP_Method'
       elif type_ in ['vulnerability']:
@@ -536,27 +545,31 @@ class MispConverter(object):
     # TODO map reference
     reference.identifier = uuid
     reference.definition = self.get_reference_definition(category, type_, value)
-    reference.definition_id = reference.definition.identifier
-    reference.value = value
-    self.set_extended_logging(reference, event)
-    return reference
+    if reference.definition:
+      reference.definition_id = reference.definition.identifier
+      reference.value = value
+      self.set_extended_logging(reference, event)
+      return reference
+    else:
+      return None
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
     if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text']) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
       # make a report
       # Create Report it will be just a single one
       reference = self.create_reference(uuid, category, type_, value, data, comment, ioc, share, event)
-      if len(event.reports) == 0:
-        report = Report()
-        report.identifier = uuid4()
-        self.set_extended_logging(report, event)
-        if comment:
-          if report.description:
-            report.description = report.description + ' - ' + comment
-          else:
-            report.description = comment
-        event.reports.append(report)
-      event.reports[0].references.append(reference)
+      if reference:
+        if len(event.reports) == 0:
+          report = Report()
+          report.identifier = uuid4()
+          self.set_extended_logging(report, event)
+          if comment:
+            if report.description:
+              report.description = report.description + ' - ' + comment
+            else:
+              report.description = comment
+          event.reports.append(report)
+        event.reports[0].references.append(reference)
     elif category == 'attribution':
       reference = self.create_reference(uuid, category, type_, value, data, comment, ioc, share, event)
       reference.value = u'Attribution: '.format(reference.value)
@@ -845,7 +858,7 @@ class MispConverter(object):
     instance.created_at = datetime.utcnow()
     instance.modified_on = datetime.utcnow()
     instance.modifier = event.creator_group
-    instance.originating_group = instance.creator_group
+    instance.originating_group = event.originating_group
 
   def get_xml_event(self, event_id):
     url = '{0}/events/{1}'.format(self.api_url, event_id)
