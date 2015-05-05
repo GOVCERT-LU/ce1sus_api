@@ -131,18 +131,31 @@ class MispConverter(object):
     self.syslogger = Syslogger()
     self.dump = False
     self.file_location = '/tmp'
+    self.verbose = False
 
-  def set_event_header(self, event, rest_event, title_prefix=''):
-    event_header = {}
-    for h in MispConverter.header_tags:
-      e = event.find(h)
-      if e is not None and e.tag not in event_header:
-        event_header[e.tag] = e.text
+  def set_event_header(self, event, rest_event, title_prefix='', json=None):
+    if event:
+      event_header = {}
+      for h in MispConverter.header_tags:
+        e = event.find(h)
+        if e is not None and e.tag not in event_header:
+          event_header[e.tag] = e.text
 
-        if h == 'threat_level_id':
-          event_header['risk'] = MispConverter.threat_level_id_map[e.text]
-        elif h == 'analysis':
-          event_header['analysis'] = MispConverter.analysis_id_map[e.text]
+          if h == 'threat_level_id':
+            event_header['risk'] = MispConverter.threat_level_id_map[e.text]
+          elif h == 'analysis':
+            event_header['analysis'] = MispConverter.analysis_id_map[e.text]
+    else:
+      if json:
+        event_header = json
+        h = json.get('analysis', None)
+        if h:
+          event_header['analysis'] = MispConverter.analysis_id_map[h]
+        h = json.get('threat_level_id', None)
+        if h:
+          event_header['risk'] = MispConverter.threat_level_id_map[h]
+      else:
+        raise MispConverterException('Error due to emptyness')
 
     if not event_header.get('description', '') == '':
       # it seems to be common practice to specify TLP level in the event description
@@ -157,6 +170,7 @@ class MispConverter(object):
 
     # Populate the event
     event_id = event_header.get('id', '')
+    setattr(rest_event, 'misp_id', event_id)
     rest_event.identifier = event_header.get('uuid', None)
     if not rest_event.identifier:
       message = 'Cannot find uuid for event {0} generating one'.format(event_id)
@@ -213,11 +227,11 @@ class MispConverter(object):
           self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
           self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
         else:
-          message = 'Composed attribute {0} splits into more than 2 elements'.format(type_)
+          message = 'Composed attribute {0} splits into more than 2 elements for {1}'.format(type_, self.__get_event_msg(event))
           self.syslogger.error(message)
           raise MispMappingException(message)
       else:
-        message = 'Composed attribute {0} cannot be mapped'.format(type_)
+        message = 'Composed attribute {0} cannot be mapped for {1}'.format(type_, self.__get_event_msg(event))
         self.syslogger.error(message)
         raise MispMappingException(message)
       pass
@@ -236,7 +250,7 @@ class MispConverter(object):
         hive = 'HKEY_CLASSES_ROOT'
       else:
         if hive[0:1] == 'H' and hive != 'HKCU_Classes':
-          message = '"{0}" not defined'.format(hive)
+          message = '"{0}" not defined from {1}'.format(hive, self.__get_event_msg(event))
           self.syslogger.error(message)
           raise MispMappingException(message)
         else:
@@ -260,7 +274,7 @@ class MispConverter(object):
         self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
         self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
       else:
-        message = 'Composed attribute {0} splits into more than 2 elements'.format(type_)
+        message = 'Composed attribute {0} splits into more than 2 elements for {1}'.format(type_, self.__get_event_msg(event))
         self.syslogger.error(message)
         raise MispMappingException(message)
 
@@ -268,7 +282,7 @@ class MispConverter(object):
       data = self.fetch_attachment(id_, filename_uuid, event.identifier, filename)
       if data:
 
-        message = u'Downloaded file "{0}" id:{1}'.format(filename, id_)
+        message = u'Downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
         self.syslogger.info(message)
 
         # build raw_artifact
@@ -276,28 +290,28 @@ class MispConverter(object):
         raw_artifact.identifier = uuid4()
         self.set_properties(raw_artifact, share)
         self.set_extended_logging(raw_artifact, event)
-        raw_artifact.definition = self.get_object_definition('Artifact', None, None)
+        raw_artifact.definition = self.get_object_definition('Artifact', None, None, event)
         if raw_artifact.definition:
           raw_artifact.definition_id = raw_artifact.definition.identifier
         else:
-          message = 'Could not find object definition Artifact'
+          message = 'Could not find object definition Artifact from {0}'.format(self.__get_event_msg(event))
           self.syslogger.error(message)
           raise MispMappingException(message)
 
         # add raw artifact
         attr = Attribute()
         attr.identifier = uuid4()
-        attr.definition = self.get_attibute_definition('', 'raw_artifact', None, raw_artifact, observable, attr)
+        attr.definition = self.get_attibute_definition('', 'raw_artifact', None, raw_artifact, observable, attr, event)
         if attr.definition:
           attr.definition_id = attr.definition.identifier
         else:
-          message = 'Could not find attribute definition raw_artifact'
+          message = 'Could not find attribute definition raw_artifact from {0}'.format(self.__get_event_msg(event))
           self.syslogger.error(message)
           raise MispMappingException(message)
         attr.value = data
         obj.related_objects.append(raw_artifact)
       else:
-        message = u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
+        message = u'Failed to download file "{0}" id:{1}, add manually form {2}'.format(filename, id_, self.__get_event_msg(event))
 
         self.syslogger.warning(message)
 
@@ -306,7 +320,7 @@ class MispConverter(object):
       attribute.identifier = uuid
       self.set_properties(attribute, share)
       self.set_extended_logging(attribute, event)
-      attribute.definition = self.get_attibute_definition(category, type_, value, obj, observable, attribute)
+      attribute.definition = self.get_attibute_definition(category, type_, value, obj, observable, attribute, event)
       if attribute.definition:
         attribute.definition_id = attribute.definition.identifier
         attribute.value = value
@@ -333,7 +347,7 @@ class MispConverter(object):
       self.syslogger.error(message)
       raise MispMappingException(message)
 
-  def get_object_definition(self, category, type_, value):
+  def get_object_definition(self, category, type_, value, event):
     # compose the correct chksum/name
     chksum = None
     name = None
@@ -360,7 +374,7 @@ class MispConverter(object):
         name = 'forensic_records'
       elif type_ in ['text', 'as', 'comment']:
 
-        message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+        message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
         self.syslogger.warning(message)
         return None
@@ -376,7 +390,7 @@ class MispConverter(object):
       elif 'pipe' in type_:
         name = 'Pipe'
       elif type_ in ['text', 'others']:
-        message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+        message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
         self.syslogger.warning(message)
         return None
@@ -391,7 +405,7 @@ class MispConverter(object):
       else:
         raise MispMappingException('Type {0} not defined'.format(type_))
     elif category in ['targeting data']:
-      message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+      message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
       self.syslogger.warning(message)
       return None
@@ -407,12 +421,12 @@ class MispConverter(object):
     self.syslogger.error(message)
     raise MispMappingException(message)
 
-  def get_reference_definition(self, category, type_, value):
+  def get_reference_definition(self, category, type_, value, event):
     # compose the correct chksum/name
     chksum = None
     name = None
     if category == 'artifacts dropped' and type_ == 'other':
-      message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+      message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
       self.syslogger.warning(message)
       return None
@@ -432,7 +446,7 @@ class MispConverter(object):
           return reference_definition
 
     # if here no def was found raise exception
-    message = u'No reference definition for {0}/{1} and value "{2}" can be found'.format(category, type_, value)
+    message = u'No reference definition for {0}/{1} and value "{2}" can be found for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
     self.syslogger.error(message)
     raise MispMappingException(message)
@@ -443,7 +457,7 @@ class MispConverter(object):
         return cond
     raise MispMappingException(u'Condition {0} is not defined'.format(condition))
 
-  def get_attibute_definition(self, category, type_, value, obj, observable, attribute):
+  def get_attibute_definition(self, category, type_, value, obj, observable, attribute, event):
     # compose the correct chksum/name
     chksum = None
     name = None
@@ -509,7 +523,8 @@ class MispConverter(object):
       name = 'Pipe_Name'
     elif category == 'artifacts dropped':
       if type_ in ['text']:
-        print u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
+        message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
+        self.syslogger.error(message)
         return None
     elif category == 'payload installation':
       if type_ == 'attachment':
@@ -528,7 +543,7 @@ class MispConverter(object):
         return definition
     # if here no def was found raise exception
 
-    message = u'No attribute definition for {0}/{1} and value {2} can be found {3}'.format(category, type_, value, name)
+    message = u'No attribute definition for {0}/{1} and value {2} can be found {3} of {4}'.format(category, type_, value, name, self.__get_event_msg(event))
 
     self.syslogger.error(message)
     raise MispMappingException(message)
@@ -545,7 +560,7 @@ class MispConverter(object):
     reference = Reference()
     # TODO map reference
     reference.identifier = uuid
-    reference.definition = self.get_reference_definition(category, type_, value)
+    reference.definition = self.get_reference_definition(category, type_, value, event)
     if reference.definition:
       reference.definition_id = reference.definition.identifier
       reference.value = value
@@ -593,7 +608,7 @@ class MispConverter(object):
       self.set_properties(obj, share)
       self.set_extended_logging(obj, event)
       observable.object = obj
-      obj.definition = self.get_object_definition(category, type_, value)
+      obj.definition = self.get_object_definition(category, type_, value, event)
       if obj.definition:
         obj.definition_id = obj.definition.identifier
 
@@ -703,11 +718,11 @@ class MispConverter(object):
                   attr_def_name = attr.definition.name
                   break
             else:
-              message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues'.format(id_, category, type_, value)
+              message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues for {4}'.format(id_, category, type_, value, self.__get_event_msg(event))
               self.syslogger.error(message)
               raise MispMappingException(message)
           else:
-            message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable'.format(id_, category, type_, value)
+            message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted in an empty observable for {4}'.format(id_, category, type_, value, self.__get_event_msg(event))
             self.syslogger.error(message)
             raise MispMappingException(message)
 
@@ -896,8 +911,12 @@ class MispConverter(object):
       f.write(data)
       f.close()
 
+  def __get_event_msg(self, event):
+    return u'event {0} - {1}/events/view/{0}'.format(event.misp_id, self.api_url)
+
   def get_event(self, event_id):
-    print u'Getting event {0} - {1}/events/view/{0}'.format(event_id, self.api_url)
+    if self.verbose:
+      print u'Getting event {0} - {1}/events/view/{0}'.format(event_id, self.api_url)
     xml_string = self.get_xml_event(event_id)
     rest_event = self.get_event_from_xml(xml_string)
 
@@ -946,18 +965,26 @@ class MispConverter(object):
           event_list[event_id][event_id_element.tag] = event_id_element.text
     return event_list
 
-  def get_recent_events(self, limit=20, unpublished=False):
+  def get_recent_events(self, limit=20, unpublished=False, populated=True):
     url = '{0}/events/index/sort:date/direction:desc/limit:{1}'.format(self.api_url, limit)
     req = urllib2.Request(url, None, self.api_headers)
     xml_sting = urllib2.urlopen(req).read()
 
     result = list()
-
-    for event_id, event in self.__parse_event_list(xml_sting).items():
-      if event['published'] == '0' and not unpublished:
-        continue
-      event = self.get_event(event_id)
-      result.append(event)
+    if populated:
+      for event_id, event in self.__parse_event_list(xml_sting).items():
+        if event['published'] == '0' and not unpublished:
+          continue
+        event = self.get_event(event_id)
+        result.append(event)
+    else:
+      for event_id, event in self.__parse_event_list(xml_sting).items():
+        if event['published'] == '0' and not unpublished:
+          continue
+        rest_event = Event()
+        event_id = self.set_event_header(None, rest_event, title_prefix='', json=event)
+        setattr(rest_event, 'misp_id', event_id)
+        result.append(rest_event)
 
     return result
 
