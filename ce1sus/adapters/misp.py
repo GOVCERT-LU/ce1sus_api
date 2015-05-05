@@ -163,8 +163,9 @@ class MispConverter(object):
       self.syslogger.warning(message)
       # raise MispMappingException(message)
       rest_event.identifier = u'{0}'.format(uuid4())
-    rest_event.title = u'{0}Event {1}'.format(title_prefix, event_id)
+
     rest_event.description = unicode(event_header.get('info', ''))
+    rest_event.title = u'{0}Event {1} - {2}'.format(title_prefix, event_id, rest_event.description)
     date = event_header.get('date', None)
     if date:
       rest_event.first_seen = parser.parse(date)
@@ -269,7 +270,7 @@ class MispConverter(object):
 
         message = u'Downloaded file "{0}" id:{1}'.format(filename, id_)
         self.syslogger.info(message)
-        print message
+
         # build raw_artifact
         raw_artifact = Object()
         raw_artifact.identifier = uuid4()
@@ -297,7 +298,7 @@ class MispConverter(object):
         obj.related_objects.append(raw_artifact)
       else:
         message = u'Failed to download file "{0}" id:{1}, add manually'.format(filename, id_)
-        print message
+
         self.syslogger.warning(message)
 
     else:
@@ -360,7 +361,7 @@ class MispConverter(object):
       elif type_ in ['text', 'as', 'comment']:
 
         message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
-        print message
+
         self.syslogger.warning(message)
         return None
       elif 'snort' in type_:
@@ -376,7 +377,7 @@ class MispConverter(object):
         name = 'Pipe'
       elif type_ in ['text', 'others']:
         message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
-        print message
+
         self.syslogger.warning(message)
         return None
       else:
@@ -391,7 +392,7 @@ class MispConverter(object):
         raise MispMappingException('Type {0} not defined'.format(type_))
     elif category in ['targeting data']:
       message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
-      print message
+
       self.syslogger.warning(message)
       return None
     if name or chksum:
@@ -402,7 +403,7 @@ class MispConverter(object):
 
     # if here no def was found raise exception
     message = u'No object definition for {0}/{1} and value "{2}" can be found'.format(category, type_, value)
-    print message
+
     self.syslogger.error(message)
     raise MispMappingException(message)
 
@@ -412,7 +413,7 @@ class MispConverter(object):
     name = None
     if category == 'artifacts dropped' and type_ == 'other':
       message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
-      print message
+
       self.syslogger.warning(message)
       return None
     elif type_ == 'url':
@@ -432,7 +433,7 @@ class MispConverter(object):
 
     # if here no def was found raise exception
     message = u'No reference definition for {0}/{1} and value "{2}" can be found'.format(category, type_, value)
-    print message
+
     self.syslogger.error(message)
     raise MispMappingException(message)
 
@@ -528,7 +529,7 @@ class MispConverter(object):
     # if here no def was found raise exception
 
     message = u'No attribute definition for {0}/{1} and value {2} can be found {3}'.format(category, type_, value, name)
-    print message
+
     self.syslogger.error(message)
     raise MispMappingException(message)
 
