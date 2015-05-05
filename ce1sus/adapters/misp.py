@@ -372,7 +372,7 @@ class MispConverter(object):
         name = 'Mutex'
       elif 'pipe' in type_:
         name = 'Pipe'
-      elif type_ == 'text':
+      elif type_ in ['text', 'others']:
         message = u'Category {0} Type {1} with value {2} not mapped map manually'.format(category, type_, value)
         print message
         self.syslogger.warning(message)

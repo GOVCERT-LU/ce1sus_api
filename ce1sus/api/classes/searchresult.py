@@ -22,7 +22,7 @@ __license__ = 'GPL v3+'
 class SearchResult(RestBase):
 
   def __init__(self):
-    RestBase.__init__(RestBase)
+    RestBase.__init__(self)
     self.event = None
     self.object = None
     self.observable = None
