@@ -134,7 +134,7 @@ class MispConverter(object):
     self.verbose = False
 
   def set_event_header(self, event, rest_event, title_prefix='', json=None):
-    if event:
+    if event is not None:
       event_header = {}
       for h in MispConverter.header_tags:
         e = event.find(h)
@@ -425,7 +425,7 @@ class MispConverter(object):
     # compose the correct chksum/name
     chksum = None
     name = None
-    if category == 'artifacts dropped' and type_ == 'other':
+    if category in ['artifacts dropped', 'network activity'] and type_ == 'other':
       message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
 
       self.syslogger.warning(message)
