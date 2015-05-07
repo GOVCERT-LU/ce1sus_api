@@ -633,7 +633,7 @@ class MispConverter(object):
           event.reports[0].description = event.reports[0].description + ' - ' + comment
         else:
           event.reports[0].description = comment
-      event.reports[0].append(report)
+      event.reports[0].references.append(reference)
 
     else:
       observable = self.make_observable(event, comment, share)
@@ -1000,7 +1000,10 @@ class MispConverter(object):
     return event_list
 
   def get_recent_events(self, limit=20, unpublished=False, populated=True):
-    url = '{0}/events/index/sort:date/direction:desc/limit:{1}'.format(self.api_url, limit)
+    if limit is None:
+      url = '{0}/events/index/sort:date/direction:desc'.format(self.api_url)
+    else:
+      url = '{0}/events/index/sort:date/direction:desc/limit:{1}'.format(self.api_url, limit)
     req = urllib2.Request(url, None, self.api_headers)
     xml_sting = urllib2.urlopen(req).read()
 
