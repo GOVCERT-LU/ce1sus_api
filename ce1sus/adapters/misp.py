@@ -6,6 +6,15 @@
 Created on Feb 20, 2015
 """
 from StringIO import StringIO
+import base64
+from ce1sus.api.classes.attribute import Attribute
+from ce1sus.api.classes.event import Event
+from ce1sus.api.classes.group import Group
+from ce1sus.api.classes.indicator import Indicator
+from ce1sus.api.classes.object import Object, RelatedObject
+from ce1sus.api.classes.observables import Observable, ObservableComposition
+from ce1sus.api.classes.report import Report, Reference
+from ce1sus.helpers.common.syslogger import Syslogger
 from copy import deepcopy
 from datetime import datetime
 from dateutil import parser
@@ -16,14 +25,6 @@ import urllib2
 from uuid import uuid4
 from zipfile import ZipFile
 
-from ce1sus.api.classes.attribute import Attribute
-from ce1sus.api.classes.event import Event
-from ce1sus.api.classes.group import Group
-from ce1sus.api.classes.indicator import Indicator
-from ce1sus.api.classes.object import Object
-from ce1sus.api.classes.observables import Observable, ObservableComposition
-from ce1sus.api.classes.report import Report, Reference
-from ce1sus.helpers.common.syslogger import Syslogger
 import xml.etree.ElementTree as et
 
 
@@ -260,7 +261,7 @@ class MispConverter(object):
         self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event, uuid4())
       self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event, uuid)
 
-    elif category in ['external analysis', 'artifacts dropped', 'payload delivery'] and type_ == 'malware-sample':
+    elif category in ['artifacts dropped', 'payload delivery'] and type_ == 'malware-sample':
       filename = value
       filename_uuid = uuid
       splitted = value.split('|')
@@ -308,8 +309,15 @@ class MispConverter(object):
           message = 'Could not find attribute definition raw_artifact from {0}'.format(self.__get_event_msg(event))
           self.syslogger.error(message)
           raise MispMappingException(message)
-        attr.value = data
-        obj.related_objects.append(raw_artifact)
+        # TODO
+        attr.value = base64.b64encode(data)
+        self.set_properties(attr, share)
+        self.set_extended_logging(attr, event)
+        raw_artifact.attributes.append(attr)
+        rel_Object = RelatedObject()
+        rel_Object.object = raw_artifact
+
+        obj.related_objects.append(rel_Object)
       else:
         message = u'Failed to download file "{0}" id:{1}, add manually form {2}'.format(filename, id_, self.__get_event_msg(event))
 
@@ -396,9 +404,6 @@ class MispConverter(object):
         return None
       else:
         name = 'Artifact'
-    elif category in ['external analysis']:
-      if type_ == 'malware-sample':
-        name = 'File'
     elif category in ['persistence mechanism']:
       if type_ == 'regkey':
         name = 'WindowsRegistryKey'
@@ -434,8 +439,13 @@ class MispConverter(object):
       name = 'link'
     elif type_ == 'text':
       name = 'comment'
-    elif type_ == 'attachment':
+    elif type_ in ['attachment', 'malware-sample']:
       name = 'raw_file'
+    elif 'filename' in type_:
+      message = u'Category {0} Type {1} with value {2} not mapped for {3} as it appears to be bogous'.format(category, type_, value, self.__get_event_msg(event))
+
+      self.syslogger.warning(message)
+      return None
     else:
       name = type_
 
@@ -556,49 +566,68 @@ class MispConverter(object):
           return attribute_definition
     return None
 
-  def create_reference(self, uuid, category, type_, value, data, comment, ioc, share, event):
+  def create_reference(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
     reference = Reference()
     # TODO map reference
     reference.identifier = uuid
     reference.definition = self.get_reference_definition(category, type_, value, event)
     if reference.definition:
       reference.definition_id = reference.definition.identifier
-      reference.value = value
+      if reference.definition == 'raw_file':
+        filename = None
+        if '|' in value:
+          splitted = type_.split('|')
+          if len(splitted) == 2:
+            filename = splitted[0]
+          else:
+            filename = value
+        # download it
+        data = self.fetch_attachment(id_, None, event.identifier, filename)
+        if data:
+          message = u'Downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
+          self.syslogger.info(message)
+          reference.value = base64.b64encode(data)
+      else:
+        reference.value = value
+      self.set_properties(reference, share)
       self.set_extended_logging(reference, event)
       return reference
     else:
       return None
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
-    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text']) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
+    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample']) or 'filename' in type_) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
       # make a report
       # Create Report it will be just a single one
-      reference = self.create_reference(uuid, category, type_, value, data, comment, ioc, share, event)
+      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
       if reference:
         if len(event.reports) == 0:
           report = Report()
           report.identifier = uuid4()
+          self.set_properties(report, True)
           self.set_extended_logging(report, event)
-          if comment:
-            if report.description:
-              report.description = report.description + ' - ' + comment
-            else:
-              report.description = comment
           event.reports.append(report)
+        if comment:
+          if event.reports[0].description:
+            event.reports[0].description = event.reports[0].description + ' - ' + comment
+          else:
+            event.reports[0].description = comment
         event.reports[0].references.append(reference)
     elif category == 'attribution':
-      reference = self.create_reference(uuid, category, type_, value, data, comment, ioc, share, event)
+      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
       reference.value = u'Attribution: '.format(reference.value)
       if len(event.reports) == 0:
         report = Report()
         report.identifier = uuid4()
+        self.set_properties(report, True)
         self.set_extended_logging(report, event)
-        if comment:
-          if report.description:
-            report.description = report.description + ' - ' + comment
-          else:
-            report.description = comment
         event.reports.append(report)
+      if comment:
+        if event.reports[0].description:
+          event.reports[0].description = event.reports[0].description + ' - ' + comment
+        else:
+          event.reports[0].description = comment
+      event.reports[0].append(report)
 
     else:
       observable = self.make_observable(event, comment, share)
@@ -841,27 +870,25 @@ class MispConverter(object):
       rest_event.observables = observables
       # Append reference
 
+      # check if there aren't any empty reports
+
       result = list()
+      for event_report in rest_event.reports:
+        if event_report.references:
+          result.append(event_report)
 
       report = Report()
       report.identifier = uuid4()
+      self.set_properties(report, False)
       self.set_extended_logging(report, rest_event)
       value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
-      reference = self.create_reference(uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event)
+      reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event)
       report.references.append(reference)
       value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
-      reference = self.create_reference(uuid4(), None, 'link', value, None, None, False, False, rest_event)
+      reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, False, rest_event)
       report.references.append(reference)
 
       result.append(report)
-
-      # check if there aren't any empty reports
-
-      for event_report in rest_event.reports:
-        if event_report.references:
-          continue
-        else:
-          result.append(event_report)
 
       rest_event.reports = result
       setattr(rest_event, 'misp_id', event_id)
