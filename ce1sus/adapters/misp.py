@@ -13,7 +13,7 @@ from ce1sus.api.classes.group import Group
 from ce1sus.api.classes.indicator import Indicator
 from ce1sus.api.classes.object import Object, RelatedObject
 from ce1sus.api.classes.observables import Observable, ObservableComposition
-from ce1sus.api.classes.report import Report, Reference
+from ce1sus.api.classes.report import Report, Reference, ReferenceFile
 from ce1sus.helpers.common.syslogger import Syslogger
 from copy import deepcopy
 from datetime import datetime
@@ -198,14 +198,19 @@ class MispConverter(object):
     if rest_event.analysis not in MispConverter.ce1sus_analysis_level:
       rest_event.analysis = 'None'
 
-    rest_event.objects = []
     rest_event.comments = []
 
     published = event_header.get('published', '1')
     if published == '1':
       rest_event.properties.is_shareable = True
+      date = event_header.get('publish_timestamp', None)
+      if date:
+        rest_event.last_publish_date = datetime.utcfromtimestamp(int(date))
+      else:
+        rest_event.last_publish_date = datetime.utcnow()
     else:
       rest_event.properties.is_shareable = False
+
     rest_event.status = u'Confirmed'
     rest_event.originating_group = Group()
     rest_event.originating_group.name = event_header.get('corg', None)
@@ -566,17 +571,17 @@ class MispConverter(object):
           return attribute_definition
     return None
 
-  def create_reference(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
+  def create_reference(self, id_, uuid, category, type_, value, data, comment, ioc, share, event, set_log=True):
     reference = Reference()
     # TODO map reference
     reference.identifier = uuid
     reference.definition = self.get_reference_definition(category, type_, value, event)
     if reference.definition:
       reference.definition_id = reference.definition.identifier
-      if reference.definition == 'raw_file':
+      if reference.definition.name == 'raw_file':
         filename = None
         if '|' in value:
-          splitted = type_.split('|')
+          splitted = value.split('|')
           if len(splitted) == 2:
             filename = splitted[0]
           else:
@@ -586,11 +591,12 @@ class MispConverter(object):
         if data:
           message = u'Downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
           self.syslogger.info(message)
-          reference.value = base64.b64encode(data)
+          reference.value = ReferenceFile(filename, base64.b64encode(data))
       else:
         reference.value = value
       self.set_properties(reference, share)
-      self.set_extended_logging(reference, event)
+      if set_log:
+        self.set_extended_logging(reference, event)
       return reference
     else:
       return None
@@ -880,12 +886,13 @@ class MispConverter(object):
       report = Report()
       report.identifier = uuid4()
       self.set_properties(report, False)
-      self.set_extended_logging(report, rest_event)
+      # self.set_extended_logging(report, rest_event)
+      # IMPORTANT logging of this should not be set, as this should onbly be visible for the owner/inserter
       value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
-      reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event)
+      reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event, False)
       report.references.append(reference)
       value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
-      reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, False, rest_event)
+      reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, False, rest_event, False)
       report.references.append(reference)
 
       result.append(report)

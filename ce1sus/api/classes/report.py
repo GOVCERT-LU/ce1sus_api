@@ -64,14 +64,26 @@ class Reference(ExtendedLogingInformations):
     self.properties = Properties('0')
 
   def to_dict(self, complete=True, inflated=False):
+    if isinstance(self.value, ReferenceFile):
+      value = self.value.to_dict()
+    else:
+      value = self.convert_value(self.value)
+
+    creator = None
+    if self.creator_group:
+      creator = self.creator_group.to_dict(False, False)
+    modifier = None
+    if self.modifier:
+      modifier = self.modifier.to_dict(False, False)
+
     return {'identifier': self.convert_value(self.identifier),
             'definition_id': self.convert_value(self.definition_id),
             'definition': self.definition.to_dict(complete, inflated),
-            'value': self.convert_value(self.value),
+            'value': value,
             'created_at': self.convert_value(self.created_at),
             'modified_on': self.convert_value(self.modified_on),
-            'creator_group': self.creator_group.to_dict(False, False),
-            'modifier_group': self.modifier.to_dict(False, False),
+            'creator_group': creator,
+            'modifier_group': modifier,
             'properties': self.properties.to_dict()
             }
 
@@ -114,6 +126,13 @@ class Report(ExtendedLogingInformations):
 
     related_count = len(self.related_reports)
 
+    creator = None
+    if self.creator_group:
+      creator = self.creator_group.to_dict(False, False)
+    modifier = None
+    if self.modifier:
+      modifier = self.modifier.to_dict(False, False)
+
     if complete:
       return {'identifier': self.convert_value(self.identifier),
               'title': self.convert_value(self.title),
@@ -124,8 +143,8 @@ class Report(ExtendedLogingInformations):
               'properties': self.properties.to_dict(),
               'related_reports': related_reports,
               'related_reports_count': related_count,
-              'creator_group': self.creator_group.to_dict(False, False),
-              'modifier_group': self.modifier.to_dict(False, False),
+              'creator_group': creator,
+              'modifier_group': modifier,
               }
     else:
       return {'identifier': self.identifier,
@@ -138,3 +157,14 @@ class Report(ExtendedLogingInformations):
     self.properties.populate(json.get('properties', None))
     # TODO inflated
     self.short_description = json.get('short_description', None)
+
+
+class ReferenceFile(RestBase):
+
+  def __init__(self, filename, b64encoded_data):
+    self.filename = filename
+    self.data = b64encoded_data
+
+  def to_dict(self, complete=True, inflated=False):
+    return {'filename': self.filename,
+            'data': self.data}
