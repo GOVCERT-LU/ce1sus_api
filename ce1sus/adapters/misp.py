@@ -213,9 +213,9 @@ class MispConverter(object):
 
     rest_event.status = u'Confirmed'
     rest_event.originating_group = Group()
-    rest_event.originating_group.name = event_header.get('corg', None)
+    rest_event.originating_group.name = event_header.get('org', None)
     rest_event.creator_group = Group()
-    rest_event.creator_group.name = event_header.get('org', None)
+    rest_event.creator_group.name = event_header.get('orgc', None)
     rest_event.modifier = rest_event.creator_group
     return event_id
 
@@ -863,7 +863,7 @@ class MispConverter(object):
       self.syslogger.warning('Event {0} does not contain attributes. None detected'.format(event.identifier))
       return result_observables
 
-  def parse_events(self, xml):
+  def parse_events(self, xml, full=True):
     events = xml.iterfind('./Event')
     rest_events = []
 
@@ -871,33 +871,33 @@ class MispConverter(object):
       rest_event = Event()
 
       event_id = self.set_event_header(event, rest_event)
+      if full:
+        observables = self.parse_attributes(rest_event, event)
+        rest_event.observables = observables
+        # Append reference
 
-      observables = self.parse_attributes(rest_event, event)
-      rest_event.observables = observables
-      # Append reference
+        # check if there aren't any empty reports
 
-      # check if there aren't any empty reports
+        result = list()
+        for event_report in rest_event.reports:
+          if event_report.references:
+            result.append(event_report)
 
-      result = list()
-      for event_report in rest_event.reports:
-        if event_report.references:
-          result.append(event_report)
+        report = Report()
+        report.identifier = uuid4()
+        self.set_properties(report, False)
+        # self.set_extended_logging(report, rest_event)
+        # IMPORTANT logging of this should not be set, as this should onbly be visible for the owner/inserter
+        value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
+        reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event, False)
+        report.references.append(reference)
+        value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
+        reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, False, rest_event, False)
+        report.references.append(reference)
 
-      report = Report()
-      report.identifier = uuid4()
-      self.set_properties(report, False)
-      # self.set_extended_logging(report, rest_event)
-      # IMPORTANT logging of this should not be set, as this should onbly be visible for the owner/inserter
-      value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
-      reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, False, rest_event, False)
-      report.references.append(reference)
-      value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
-      reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, False, rest_event, False)
-      report.references.append(reference)
+        result.append(report)
 
-      result.append(report)
-
-      rest_event.reports = result
+        rest_event.reports = result
       setattr(rest_event, 'misp_id', event_id)
       rest_events.append(rest_event)
 
@@ -917,9 +917,9 @@ class MispConverter(object):
     xml_string = urllib2.urlopen(req).read()
     return xml_string
 
-  def get_event_from_xml(self, xml_string):
+  def get_event_from_xml(self, xml_string, full=True):
     xml = et.fromstring(xml_string)
-    rest_events = self.parse_events(xml)
+    rest_events = self.parse_events(xml, full)
     return rest_events[0]
 
   def __get_dump_path(self, base, dirname):
@@ -948,11 +948,11 @@ class MispConverter(object):
   def __get_event_msg(self, event):
     return u'event {0} - {1}/events/view/{0}'.format(event.misp_id, self.api_url)
 
-  def get_event(self, event_id):
+  def get_event(self, event_id, full=True):
     if self.verbose:
       print u'Getting event {0} - {1}/events/view/{0}'.format(event_id, self.api_url)
     xml_string = self.get_xml_event(event_id)
-    rest_event = self.get_event_from_xml(xml_string)
+    rest_event = self.get_event_from_xml(xml_string, full)
 
     if self.dump:
       event_uuid = rest_event.identifier
