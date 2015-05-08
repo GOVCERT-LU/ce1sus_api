@@ -23,9 +23,10 @@ from os.path import isdir, isfile
 import re
 import urllib2
 from uuid import uuid4
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipfile
 
 import xml.etree.ElementTree as et
+from shutil import move
 
 
 __author__ = 'Weber Jean-Paul'
@@ -133,8 +134,10 @@ class MispConverter(object):
     self.dump = False
     self.file_location = '/tmp'
     self.verbose = False
+    self.seen_attr_ids = list()
 
   def set_event_header(self, event, rest_event, title_prefix='', json=None):
+    self.seen_attr_ids = list()
     if event is not None:
       event_header = {}
       for h in MispConverter.header_tags:
@@ -330,7 +333,13 @@ class MispConverter(object):
 
     else:
       attribute = Attribute()
-      attribute.identifier = uuid
+      # workaround for https://github.com/MISP/MISP/issues/452
+      if uuid not in self.seen_attr_ids:
+        attribute.identifier = uuid
+        self.seen_attr_ids.append(uuid)
+      else:
+        attribute.identifier = uuid4()
+
       self.set_properties(attribute, share)
       self.set_extended_logging(attribute, event)
       attribute.definition = self.get_attibute_definition(category, type_, value, obj, observable, attribute, event)
@@ -342,7 +351,6 @@ class MispConverter(object):
         else:
           attribute.is_ioc = False
         attribute.properties.is_shareable = True
-
         obj.attributes.append(attribute)
 
   def get_hash_type(self, value):
@@ -584,8 +592,8 @@ class MispConverter(object):
           splitted = value.split('|')
           if len(splitted) == 2:
             filename = splitted[0]
-          else:
-            filename = value
+        if filename is None:
+          filename = value
         # download it
         data = self.fetch_attachment(id_, None, event.identifier, filename)
         if data:
@@ -597,12 +605,13 @@ class MispConverter(object):
       self.set_properties(reference, share)
       if set_log:
         self.set_extended_logging(reference, event)
+
       return reference
     else:
       return None
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
-    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample']) or 'filename' in type_) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
+    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text'])) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
       # make a report
       # Create Report it will be just a single one
       reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
@@ -618,6 +627,7 @@ class MispConverter(object):
             event.reports[0].description = event.reports[0].description + ' - ' + comment
           else:
             event.reports[0].description = comment
+
         event.reports[0].references.append(reference)
     elif category == 'attribution':
       reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
@@ -633,6 +643,7 @@ class MispConverter(object):
           event.reports[0].description = event.reports[0].description + ' - ' + comment
         else:
           event.reports[0].description = comment
+
       event.reports[0].references.append(reference)
 
     else:
@@ -1032,8 +1043,13 @@ class MispConverter(object):
       req = urllib2.Request(url, None, self.api_headers)
       resp = urllib2.urlopen(req).read()
       binary = StringIO(resp)
-      zip_file = ZipFile(binary)
-      zip_file.setpassword('infected'.encode('utf-8'))
+      zipfile = True
+      try:
+        zip_file = ZipFile(binary)
+        zip_file.setpassword('infected'.encode('utf-8'))
+      except BadZipfile:
+        zipfile = False
+
       if self.dump:
 
         path = self.__get_dump_path(self.file_location, event_uuid)
@@ -1041,25 +1057,39 @@ class MispConverter(object):
         if not isdir(destination_folder):
           makedirs(destination_folder)
         # save zip file
+        if zipfile:
+          f = open('{0}/{1}.zip'.format(destination_folder, filename), 'w+')
+          f.write(resp)
+          f.close()
 
-        f = open('{0}/{1}.zip'.format(destination_folder, filename), 'w+')
-        f.write(resp)
-        f.close()
-        extraction_destination = '{0}/{1}.zip_contents'.format(destination_folder, filename)
-        if not isdir(extraction_destination):
-          makedirs(extraction_destination)
-        # unzip the file
-        zip_file.extractall(extraction_destination)
+          extraction_destination = '{0}/{1}.zip_contents'.format(destination_folder, filename)
+          if not isdir(extraction_destination):
+            makedirs(extraction_destination)
+          # unzip the file
+          zip_file.extractall(extraction_destination)
 
-      # do everything in memory
-      zipfiles = zip_file.filelist
+        else:
+          file_path = '{0}/{1}'.format(destination_folder, filename)
+          f = open(file_path, 'w+')
+          f.write(resp)
+          f.close()
+          extraction_destination = '{0}'.format(destination_folder)
+          if not isdir(extraction_destination):
+            makedirs(extraction_destination)
+          move(file_path, extraction_destination)
 
-      for zipfile in zipfiles:
-        filename = zipfile.filename
-        result = zip_file.read(filename)
-        break
+      if zipfile:
+          zipfiles = zip_file.filelist
 
-      zip_file.close()
+          for zipfile in zipfiles:
+            filename = zipfile.filename
+            result = zip_file.read(filename)
+            break
+
+          zip_file.close()
+      else:
+          result = resp
+
       return result
     except urllib2.HTTPError:
       return None
