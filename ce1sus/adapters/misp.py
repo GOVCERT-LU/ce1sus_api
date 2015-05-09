@@ -223,7 +223,56 @@ class MispConverter(object):
     return event_id
 
   def append_attributes(self, obj, observable, id_, category, type_, value, ioc, share, event, uuid):
-    if '|' in type_:
+
+    if type_ in ['regkey', 'regkey|value']:
+      if '|' in value:
+        value = value.replace('/', '\\')
+        splited = value.split('|')
+        pos = splited[0].find("\\")
+        key_name = splited[0][pos + 1:]
+        splitted = key_name.split(' ')
+        if len(splitted) > 0:
+          key = splitted[0]
+          name = splitted[1]
+        else:
+          key = key_name
+          name = None
+        hive = splited[0][0:pos]
+        data = splited[1]
+
+      else:
+        value = value.replace('/', '\\')
+        pos = value.find("\\")
+        key = value[pos + 1:]
+        hive = value[0:pos]
+        data = None
+        name = None
+      if hive == 'HKLM' or 'HKEY_LOCAL_MACHINE' in hive:
+        hive = 'HKEY_LOCAL_MACHINE'
+      elif hive == 'HKCU' or 'HKEY_CURRENT_USER' in hive or hive == 'HCKU':
+        hive = 'HKEY_CURRENT_USER'
+      elif hive == 'HKEY_CURRENTUSER':
+        hive = 'HKEY_CURRENT_USER'
+      elif hive in ['HKCR', 'HKEY_CLASSES_ROOT']:
+        hive = 'HKEY_CLASSES_ROOT'
+      else:
+        if hive[0:1] == 'H' and hive != 'HKCU_Classes':
+          message = '"{0}" not defined from {1}'.format(hive, self.__get_event_msg(event))
+          self.syslogger.error(message)
+          raise MispMappingException(message)
+        else:
+          hive = None
+
+      if hive:
+        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event, uuid4())
+      if name:
+        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_RegistryValue_Name', name, ioc, share, event, uuid4())
+      if data:
+        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_RegistryValue_Data', data, ioc, share, event, uuid4())
+
+      self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event, uuid)
+
+    elif '|' in type_:
       # it is a composed attribute
       if type_ in ('filename|md5', 'filename|sha1', 'filename|sha256'):
         splitted = type_.split('|')
@@ -244,32 +293,8 @@ class MispConverter(object):
         self.syslogger.error(message)
         raise MispMappingException(message)
       pass
-    elif type_ == 'regkey':
-      value = value.replace('/', '\\')
-      pos = value.find("\\")
-      key = value[pos + 1:]
-      hive = value[0:pos]
-      if hive == 'HKLM' or 'HKEY_LOCAL_MACHINE' in hive:
-        hive = 'HKEY_LOCAL_MACHINE'
-      elif hive == 'HKCU' or 'HKEY_CURRENT_USER' in hive or hive == 'HCKU':
-        hive = 'HKEY_CURRENT_USER'
-      elif hive == 'HKEY_CURRENTUSER':
-        hive = 'HKEY_CURRENT_USER'
-      elif hive in ['HKCR', 'HKEY_CLASSES_ROOT']:
-        hive = 'HKEY_CLASSES_ROOT'
-      else:
-        if hive[0:1] == 'H' and hive != 'HKCU_Classes':
-          message = '"{0}" not defined from {1}'.format(hive, self.__get_event_msg(event))
-          self.syslogger.error(message)
-          raise MispMappingException(message)
-        else:
-          hive = None
 
-      if hive:
-        self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Hive', hive, ioc, share, event, uuid4())
-      self.append_attributes(obj, observable, id_, category, 'WindowsRegistryKey_Key', key, ioc, share, event, uuid)
-
-    elif category in ['artifacts dropped', 'payload delivery'] and type_ == 'malware-sample':
+    elif category in ['artifacts dropped', 'payload delivery', 'payload installation'] and type_ == 'malware-sample':
       filename = value
       filename_uuid = uuid
       splitted = value.split('|')
@@ -393,6 +418,8 @@ class MispConverter(object):
         name = 'File'
       elif type_ == 'pattern-in-traffic':
         name = 'forensic_records'
+      elif category == 'payload delivery' and type_ == 'yara':
+        name = 'IDSRule'
       elif type_ in ['text', 'as', 'comment']:
 
         message = u'Category {0} Type {1} with value {2} not mapped map manually for {3}'.format(category, type_, value, self.__get_event_msg(event))
@@ -454,6 +481,9 @@ class MispConverter(object):
       name = 'comment'
     elif type_ in ['attachment', 'malware-sample']:
       name = 'raw_file'
+    elif type_ in ['other'] and category in ['persistence mechanism', 'payload installation']:
+      name = 'comment'
+      value = u'{0}/{1} - {2}'.format(category, type, value)
     elif 'filename' in type_:
       message = u'Category {0} Type {1} with value {2} not mapped for {3} as it appears to be bogous'.format(category, type_, value, self.__get_event_msg(event))
 
@@ -611,7 +641,7 @@ class MispConverter(object):
       return None
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
-    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text'])) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
+    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample', 'filename|sha1', 'filename|md5', 'filename|sha256'])) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
       # make a report
       # Create Report it will be just a single one
       reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
@@ -763,6 +793,9 @@ class MispConverter(object):
                 if 'hash' in attr.definition.name:
                   attr_def_name = attr.definition.name
                   break
+            elif len(obj.attributes) == 4:
+              # regkey|value creates more attribtues
+              pass
             else:
               message = u'Misp Attribute {0} defined as {1}/{2} with value {3} resulted too many attribtues for {4}'.format(id_, category, type_, value, self.__get_event_msg(event))
               self.syslogger.error(message)

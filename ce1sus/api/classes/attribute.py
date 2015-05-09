@@ -32,6 +32,7 @@ class Condition(RestBase):
             }
 
   def populate(self, json):
+    self.identifier = json.get('identifier', None)
     self.value = json.get('value', None)
     self.description = json.get('description', None)
 
@@ -50,12 +51,17 @@ class Attribute(ExtendedLogingInformations):
     self.object_id = None
 
   def to_dict(self, complete=True, inflated=False):
+    cond = self.condition
+    if cond:
+      cond = self.condition.to_dict(complete, inflated)
+    else:
+      cond = None
     return {'identifier': self.convert_value(self.identifier),
             'definition_id': self.convert_value(self.definition_id),
             'definition': self.definition.to_dict(complete, False),
             'ioc': self.is_ioc,
             'value': self.convert_value(self.value),
-            'condition': self.condition.to_dict(complete, inflated),
+            'condition': cond,
             'created_at': self.convert_value(self.created_at),
             'modified_on': self.convert_value(self.modified_on),
             'creator_group': self.creator_group.to_dict(False, False),
@@ -64,6 +70,7 @@ class Attribute(ExtendedLogingInformations):
             }
 
   def populate(self, json):
+    self.identifier = json.get('identifier', None)
     definition_id = json.get('definition_id', None)
     if definition_id:
       self.definition_id = definition_id

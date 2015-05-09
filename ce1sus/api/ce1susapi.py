@@ -5,18 +5,17 @@
 
 Created on Feb 4, 2015
 """
+from ce1sus.api.classes.attribute import Attribute, Condition
+from ce1sus.api.classes.definitions import AttributeDefinition, ObjectDefinition
+from ce1sus.api.classes.event import Event
+from ce1sus.api.classes.indicator import IndicatorType
+from ce1sus.api.classes.object import Object
+from ce1sus.api.classes.observables import Observable
+from ce1sus.api.classes.report import ReferenceDefinition, Report, Reference
+from ce1sus.api.classes.searchresult import SearchResult
 import json
 import requests
 from requests.sessions import session
-
-from ce1sus.api.classes.attribute import Attribute, Condition
-from ce1sus.api.classes.event import Event
-from ce1sus.api.classes.object import Object
-from ce1sus.api.classes.observables import Observable
-from ce1sus.api.classes.searchresult import SearchResult
-from ce1sus.api.classes.definitions import AttributeDefinition, ObjectDefinition
-from ce1sus.api.classes.report import ReferenceDefinition
-from ce1sus.api.classes.indicator import IndicatorType
 
 
 __author__ = 'Weber Jean-Paul'
@@ -175,6 +174,14 @@ class Ce1susAPI(object):
                                 Event)
     return rest_event
 
+  def get_report_by_uuid(self, uuid, complete=False, inflated=False):
+    url = '/report/{0}'.format(uuid)
+    url = self.__set_complete_inflated(url, complete, inflated)
+    rest_report = self.__request(url,
+                                 'GET',
+                                 Report)
+    return rest_report
+
   def get_observable_by_uuid(self, uuid, complete=False, inflated=False):
     url = '/observable/{0}'.format(uuid)
     url = self.__set_complete_inflated(url, complete, inflated)
@@ -272,6 +279,29 @@ class Ce1susAPI(object):
                                 'POST',
                                 Object,
                                 data=attribute.to_dict(True, True))
+    return rest_event
+
+  def insert_reference(self, reference, complete=False, inflated=False):
+    if not reference.report_id:
+      raise Ce1susAPIException(u'Cannot insert reference as report_id is not set')
+    url = '/report/{0}/reference'.format(reference.report_id)
+    url = self.__set_complete_inflated(url, complete, inflated)
+    rest_event = self.__request(url,
+                                'POST',
+                                Reference,
+                                data=reference.to_dict(True, True))
+    return rest_event
+
+  def insert_report(self, report, complete=False, inflated=False):
+    if not report.event_id:
+      raise Ce1susAPIException(u'Cannot insert observable as event_id is not set')
+
+    url = '/event/{0}/report'.format(report.event_id)
+    url = self.__set_complete_inflated(url, complete, inflated)
+    rest_event = self.__request(url,
+                                'POST',
+                                Report,
+                                data=report.to_dict(True, True))
     return rest_event
 
   def login(self):
@@ -383,3 +413,32 @@ class Ce1susAPI(object):
       result_item.populate(item)
       result.append(result_item)
     return result
+
+  def get_unvalidated_events(self, count=10, page=1):
+    url = "/validate/unvalidated?count={0}&page={1}&sorting%5Bcreated_at%5D=desc".format(count, page)
+    events_json = self.__request(url,
+                                 'GET',
+                                 None
+                                 )
+    event_dict = json.loads(events_json)
+    events_dict = event_dict.get('data', list())
+    result = list()
+
+    for event_dict in events_dict:
+      event = Event()
+      event.populate(event_dict)
+      result.append(event)
+
+    return result
+
+  def validate_event(self, event):
+    url = "event/{0}/validate".format(event.identifier)
+    events_json = self.__request(url,
+                                 'PUT',
+                                 None
+                                 )
+    if events_json:
+      return True
+    else:
+      return False
+

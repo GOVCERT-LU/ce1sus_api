@@ -8,6 +8,8 @@ Created on Jan 8, 2015
 
 from ce1sus.api.classes.base import ExtendedLogingInformations, RestBase
 from ce1sus.api.classes.common import ValueException, Properties
+from ce1sus.api.classes.group import Group
+from ce1sus.helpers.common import strings
 
 
 __author__ = 'Weber Jean-Paul'
@@ -62,6 +64,8 @@ class Reference(ExtendedLogingInformations):
     self.definition = None
     self.value = None
     self.properties = Properties('0')
+    self.report_id = None
+    self.report = None
 
   def to_dict(self, complete=True, inflated=False):
     if isinstance(self.value, ReferenceFile):
@@ -89,17 +93,35 @@ class Reference(ExtendedLogingInformations):
 
   def populate(self, json):
     definition_id = json.get('definition_id', None)
-    if not definition_id:
-      definition = json.get('definition', None)
-      if definition:
-        definition_id = definition.get('identifier', None)
-    if self.definition_id:
-      if self.definition_id != definition_id:
-        raise ValueException(u'Reference definitions cannot be updated')
     if definition_id:
       self.definition_id = definition_id
+      definition = json.get('definition', None)
+      if definition:
+        definitin_instance = ReferenceDefinition()
+        definitin_instance.populate(definition)
+        self.definition = definitin_instance
+    if self.definition_id and self.definition:
+      if self.definition.identifier and self.definition_id != self.definition.identifier:
+        raise ValueException(u'Reference definitions cannot be updated')
     self.value = json.get('value', None)
+    self.identifier = json.get('identifier', None)
     self.properties.populate(json.get('properties', None))
+    creator_group = json.get('creator_group', None)
+    if creator_group:
+      cg_instance = Group()
+      cg_instance.populate(creator_group)
+      self.creator_group = cg_instance
+    modifier_group = json.get('modifier_group', None)
+    if modifier_group:
+      cg_instance = Group()
+      cg_instance.populate(modifier_group)
+      self.modifier = cg_instance
+    created_at = json.get('created_at', None)
+    if created_at:
+      self.created_at = strings.stringToDateTime(created_at)
+    modified_on = json.get('modified_on', None)
+    if modified_on:
+      self.modified_on = strings.stringToDateTime(modified_on)
 
 
 class Report(ExtendedLogingInformations):
@@ -155,8 +177,31 @@ class Report(ExtendedLogingInformations):
     self.title = json.get('title', None)
     self.description = json.get('description', None)
     self.properties.populate(json.get('properties', None))
-    # TODO inflated
     self.short_description = json.get('short_description', None)
+    self.identifier = json.get('identifier', None)
+    self.properties.populate(json.get('properties', None))
+    creator_group = json.get('creator_group', None)
+    if creator_group:
+      cg_instance = Group()
+      cg_instance.populate(creator_group)
+      self.creator_group = cg_instance
+    modifier_group = json.get('modifier_group', None)
+    if modifier_group:
+      cg_instance = Group()
+      cg_instance.populate(modifier_group)
+      self.modifier = cg_instance
+    created_at = json.get('created_at', None)
+    if created_at:
+      self.created_at = strings.stringToDateTime(created_at)
+    modified_on = json.get('modified_on', None)
+    if modified_on:
+      self.modified_on = strings.stringToDateTime(modified_on)
+    references = json.get('references', None)
+    if references:
+      for reference in references:
+        ref = Reference()
+        ref.populate(reference)
+        self.references.append(ref)
 
 
 class ReferenceFile(RestBase):
