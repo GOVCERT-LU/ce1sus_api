@@ -231,7 +231,7 @@ class MispConverter(object):
         pos = splited[0].find("\\")
         key_name = splited[0][pos + 1:]
         splitted = key_name.split(' ')
-        if len(splitted) > 0:
+        if len(splitted) > 1:
           key = splitted[0]
           name = splitted[1]
         else:
@@ -314,6 +314,7 @@ class MispConverter(object):
 
       # Download the attachment if it exists
       data = self.fetch_attachment(id_, filename_uuid, event.identifier, filename)
+
       if data:
 
         message = u'Downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
@@ -428,6 +429,11 @@ class MispConverter(object):
         return None
       elif 'snort' in type_:
         name = 'IDSRule'
+
+      elif type_ == 'attachment':
+        # TODO handle pcap files
+        return None
+
     elif category in ['payload type', 'payload installation']:
       name = 'File'
     elif category in ['artifacts dropped']:
@@ -445,7 +451,7 @@ class MispConverter(object):
       else:
         name = 'Artifact'
     elif category in ['persistence mechanism']:
-      if type_ == 'regkey':
+      if type_ in ['regkey', 'regkey|value']:
         name = 'WindowsRegistryKey'
       else:
         raise MispMappingException('Type {0} not defined'.format(type_))
@@ -793,7 +799,7 @@ class MispConverter(object):
                 if 'hash' in attr.definition.name:
                   attr_def_name = attr.definition.name
                   break
-            elif len(obj.attributes) == 4:
+            elif len(obj.attributes) > 2:
               # regkey|value creates more attribtues
               pass
             else:
