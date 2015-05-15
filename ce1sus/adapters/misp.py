@@ -487,7 +487,7 @@ class MispConverter(object):
       name = 'comment'
     elif type_ in ['attachment', 'malware-sample']:
       name = 'raw_file'
-    elif type_ in ['other'] and category in ['persistence mechanism', 'payload installation']:
+    elif (type_ in ['other'] and category in ['persistence mechanism', 'payload installation']) or type_ == 'other':
       name = 'comment'
       value = u'{0}/{1} - {2}'.format(category, type, value)
     elif 'filename' in type_:
