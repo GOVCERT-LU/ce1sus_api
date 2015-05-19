@@ -40,4 +40,7 @@ def extract_event_objects(event):
   result = list()
   for observable in event.observables:
     result = result + get_objects(observable)
+  for indicator in event.indicators:
+    for observable in indicator.observables:
+      result = result + get_objects(observable)
   return result
