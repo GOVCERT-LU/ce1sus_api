@@ -7,6 +7,9 @@ Created on Nov 11, 2014
 """
 from ce1sus.api.classes.base import RestBase, ExtendedLogingInformations
 from ce1sus.api.classes.common import Properties
+from ce1sus.api.classes.group import Group
+from ce1sus.api.classes.observables import Observable
+from ce1sus.helpers.common import strings
 
 
 __author__ = 'Weber Jean-Paul'
@@ -17,22 +20,45 @@ __license__ = 'GPL v3+'
 
 class IndicatorType(RestBase):
   def __init__(self):
-    self.name = None
+    self.type_ = None
     self.description = None
+
+  @classmethod
+  def get_dictionary(cls):
+    return {0: "Malicious E-mail",
+            1: "IP Watchlist",
+            2: "File Hash Watchlist",
+            3: "Domain Watchlist",
+            4: "URL Watchlist",
+            5: "Malware Artifacts",
+            6: "C2",
+            7: "Anonymization",
+            8: "Exfiltration",
+            9: "Host Characteristics",
+            10: "Compromised PKI Certificate",
+            11: "Login Name",
+            12: "IMEI Watchlist",
+            13: "IMSI Watchlist"}
+
+  @property
+  def name(self):
+    return self.get_dictionary().get(self.type_, None)
+
+  @name.setter
+  def name(self, name):
+    for key, value in self.get_dictionary().iteritems():
+      if value == name:
+        self.type_ = key
+        break
 
   def populate(self, json):
     self.identifier = json.get('identifier', None)
     self.name = json.get('name', None)
     self.description = json.get('description', None)
 
-  def to_dict(self, complete=False):
-    if complete:
-      return {'identifier': self.convert_value(self.identifier),
-              'name': self.convert_value(self.name),
-              'description': self.convert_value(self.description)}
-    else:
-      return {'identifier': self.convert_value(self.identifier),
-              'name': self.convert_value(self.name)}
+  def to_dict(self, complete=True, inflated=False):
+    return {'identifier': self.convert_value(self.identifier),
+            'name': self.convert_value(self.name)}
 
 
 class Indicator(ExtendedLogingInformations):

@@ -16,6 +16,7 @@ from ce1sus.api.classes.searchresult import SearchResult
 import json
 import requests
 from requests.sessions import session
+from ce1sus.api.classes.group import Group
 
 
 __author__ = 'Weber Jean-Paul'
@@ -173,6 +174,14 @@ class Ce1susAPI(object):
                                 'GET',
                                 Event)
     return rest_event
+
+  def get_group_by_uuid(self, uuid, complete=False, inflated=False):
+    url = '/group/{0}'.format(uuid)
+    url = self.__set_complete_inflated(url, complete, inflated)
+    rest_group = self.__request(url,
+                                'GET',
+                                Group)
+    return rest_group
 
   def get_report_by_uuid(self, uuid, complete=False, inflated=False):
     url = '/report/{0}'.format(uuid)

@@ -31,6 +31,13 @@ class EventGroupPermission(ExtendedLogingInformations):
             'permissions': self.permissions.to_dict(),
             'group': self.group.to_dict(False, False)}
 
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
+    self.permissions = EventPermissions('0')
+    self.permissions.populate(json.get('permissions', None))
+    self.group = Group()
+    self.group.populate(json.get('group', None))
+
 
 class Event(ExtendedLogingInformations):
 
@@ -45,7 +52,6 @@ class Event(ExtendedLogingInformations):
     self.observables = list()
     self.observables_count = None
     self.comments = list()
-    self.properties = None
     self.groups = list()
     self.properties = Properties('0')
     self.reports = list()
@@ -280,6 +286,11 @@ class Event(ExtendedLogingInformations):
         comment_instacne = Comment()
         comment_instacne.populate(comment)
         self.comments.append(comment_instacne)
+    permissions = json.get('groups', None)
+    if permissions:
+      for permission in permissions:
+        event_permission = EventGroupPermission()
+        event_permission.populate(permission)
 
 
 class Comment(ExtendedLogingInformations):
