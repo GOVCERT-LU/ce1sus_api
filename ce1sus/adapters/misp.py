@@ -483,6 +483,8 @@ class MispConverter(object):
       return None
     elif type_ == 'url':
       name = 'link'
+    elif type_ == 'vulnerability':
+      name = 'comment'
     elif type_ == 'text':
       name = 'comment'
     elif type_ in ['attachment', 'malware-sample']:
@@ -665,9 +667,25 @@ class MispConverter(object):
             event.reports[0].description = comment
 
         event.reports[0].references.append(reference)
+    elif category == 'payload installation' and type_ == 'vulnerability':
+      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
+      reference.value = u'Vulnerablility: {0}'.format(reference.value)
+      if len(event.reports) == 0:
+        report = Report()
+        report.identifier = uuid4()
+        self.set_properties(report, True)
+        self.set_extended_logging(report, event)
+        event.reports.append(report)
+      if comment:
+        if event.reports[0].description:
+          event.reports[0].description = event.reports[0].description + ' - ' + comment
+        else:
+          event.reports[0].description = comment
+
+      event.reports[0].references.append(reference)
     elif category == 'attribution':
       reference = self.create_reference(id_, uuid, category, type_, value, data, comment, ioc, share, event)
-      reference.value = u'Attribution: '.format(reference.value)
+      reference.value = u'Attribution: {0}'.format(reference.value)
       if len(event.reports) == 0:
         report = Report()
         report.identifier = uuid4()
