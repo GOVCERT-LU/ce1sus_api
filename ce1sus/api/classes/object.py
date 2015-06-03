@@ -21,117 +21,117 @@ __license__ = 'GPL v3+'
 
 class RelatedObject(RestBase):
 
-  def __init__(self):
-    RestBase.__init__(self)
-    self.relation = None
-    self.object = None
-    self.parent_id = None
+    def __init__(self):
+        RestBase.__init__(self)
+        self.relation = None
+        self.object = None
+        self.parent_id = None
 
-  def to_dict(self, complete=True, inflated=False):
-    # flatten related object
-    obj = self.object.to_dict(complete, inflated)
-    obj['relation'] = self.convert_value(self.relation)
-    obj['parent_object_id'] = self.convert_value(self.parent_id)
-    return {'identifier': self.convert_value(self.identifier),
-            'object': obj,
-            'relation': self.convert_value(self.relation),
-            'parent_id': self.convert_value(self.parent_id)
-            }
+    def to_dict(self, complete=True, inflated=False):
+        # flatten related object
+        obj = self.object.to_dict(complete, inflated)
+        obj['relation'] = self.convert_value(self.relation)
+        obj['parent_object_id'] = self.convert_value(self.parent_id)
+        return {'identifier': self.convert_value(self.identifier),
+                'object': obj,
+                'relation': self.convert_value(self.relation),
+                'parent_id': self.convert_value(self.parent_id)
+                }
 
-  def populate(self, json):
-    self.identifier = json.get('identifier', None)
-    obj = json.get('object', None)
-    if obj:
-      self.object = Object()
-      print obj.get('identifier', None)
-      self.object.populate(obj)
-    self.relation = json.get('relation', None)
-    self.parent_id = json.get('parent_id')
+    def populate(self, json):
+        self.identifier = json.get('identifier', None)
+        obj = json.get('object', None)
+        if obj:
+            self.object = Object()
+            print obj.get('identifier', None)
+            self.object.populate(obj)
+        self.relation = json.get('relation', None)
+        self.parent_id = json.get('parent_id')
 
 
 class Object(ExtendedLogingInformations):
 
-  def __init__(self):
-    ExtendedLogingInformations.__init__(self)
-    self.attributes = list()
-    self.properties = Properties('0')
-    self.definition_id = None
-    self.definition = None
-    self.related_objects = list()
-    self.observable_id = None
-    self.modifier = None
+    def __init__(self):
+        ExtendedLogingInformations.__init__(self)
+        self.attributes = list()
+        self.properties = Properties('0')
+        self.definition_id = None
+        self.definition = None
+        self.related_objects = list()
+        self.observable_id = None
+        self.modifier = None
 
-  def to_dict(self, complete=True, inflated=False):
-    attributes = list()
-    for attribute in self.attributes:
-      attributes.append(attribute.to_dict(complete, inflated))
-    related = list()
+    def to_dict(self, complete=True, inflated=False):
+        attributes = list()
+        for attribute in self.attributes:
+            attributes.append(attribute.to_dict(complete, inflated))
+        related = list()
 
-    attributes_count = len(self.attributes)
+        attributes_count = len(self.attributes)
 
-    if inflated:
-      for related_object in self.related_objects:
-        related.append(related_object.to_dict(complete, inflated))
-    related_count = len(self.related_objects)
+        if inflated:
+            for related_object in self.related_objects:
+                related.append(related_object.to_dict(complete, inflated))
+        related_count = len(self.related_objects)
 
-    return {'identifier': self.convert_value(self.identifier),
-            'definition_id': self.convert_value(self.definition_id),
-            'definition': self.definition.to_dict(complete, inflated),
-            'attributes': attributes,
-            'attributes_count': attributes_count,
-            'creator_group': self.creator_group.to_dict(False, False),
-            'modifier_group': self.modifier.to_dict(False, False),
-            'created_at': self.convert_value(self.created_at),
-            'modified_on': self.convert_value(self.modified_on),
-            'related_objects': related,
-            'related_objects_count': related_count,
-            'properties': self.properties.to_dict(),
-            'observable_id': self.convert_value(self.observable_id)
-            }
+        return {'identifier': self.convert_value(self.identifier),
+                'definition_id': self.convert_value(self.definition_id),
+                'definition': self.definition.to_dict(complete, inflated),
+                'attributes': attributes,
+                'attributes_count': attributes_count,
+                'creator_group': self.creator_group.to_dict(False, False),
+                'modifier_group': self.modifier.to_dict(False, False),
+                'created_at': self.convert_value(self.created_at),
+                'modified_on': self.convert_value(self.modified_on),
+                'related_objects': related,
+                'related_objects_count': related_count,
+                'properties': self.properties.to_dict(),
+                'observable_id': self.convert_value(self.observable_id)
+                }
 
-  def populate(self, json):
+    def populate(self, json):
 
-    self.identifier = json.get('identifier', None)
-    definition_id = json.get('definition_id', None)
-    if definition_id:
-      self.definition_id = definition_id
-      definition = json.get('definition', None)
-      if definition:
-        definitin_instance = ObjectDefinition()
-        definitin_instance.populate(definition)
-        self.definition = definitin_instance
-    if self.definition_id and self.definition:
-      if self.definition.identifier and self.definition_id != self.definition.identifier:
-        raise ValueException(u'Object definitions cannot be updated')
-    if not (self.definition_id or self.definition):
-      raise ValueException(u'Object definition or definition_id must be set')
-    self.properties.populate(json.get('properties', Properties('0')))
-    creator_group = json.get('creator_group', None)
-    if creator_group:
-      cg_instance = Group()
-      cg_instance.populate(creator_group)
-      self.creator_group = cg_instance
-    modifier_group = json.get('modifier_group', None)
-    if modifier_group:
-      cg_instance = Group()
-      cg_instance.populate(modifier_group)
-      self.modifier = cg_instance
-    created_at = json.get('created_at', None)
-    if created_at:
-      self.created_at = strings.stringToDateTime(created_at)
-    modified_on = json.get('modified_on', None)
-    if modified_on:
-      self.modified_on = strings.stringToDateTime(modified_on)
-    rel_obs = json.get('related_objects', None)
-    if rel_obs:
-      for rel_ob in rel_obs:
-        obj_instance = RelatedObject()
-        obj_instance.populate(rel_ob)
-        self.related_objects.append(obj_instance)
+        self.identifier = json.get('identifier', None)
+        definition_id = json.get('definition_id', None)
+        if definition_id:
+            self.definition_id = definition_id
+            definition = json.get('definition', None)
+            if definition:
+                definitin_instance = ObjectDefinition()
+                definitin_instance.populate(definition)
+                self.definition = definitin_instance
+        if self.definition_id and self.definition:
+            if self.definition.identifier and self.definition_id != self.definition.identifier:
+                raise ValueException(u'Object definitions cannot be updated')
+        if not (self.definition_id or self.definition):
+            raise ValueException(u'Object definition or definition_id must be set')
+        self.properties.populate(json.get('properties', Properties('0')))
+        creator_group = json.get('creator_group', None)
+        if creator_group:
+            cg_instance = Group()
+            cg_instance.populate(creator_group)
+            self.creator_group = cg_instance
+        modifier_group = json.get('modifier_group', None)
+        if modifier_group:
+            cg_instance = Group()
+            cg_instance.populate(modifier_group)
+            self.modifier = cg_instance
+        created_at = json.get('created_at', None)
+        if created_at:
+            self.created_at = strings.stringToDateTime(created_at)
+        modified_on = json.get('modified_on', None)
+        if modified_on:
+            self.modified_on = strings.stringToDateTime(modified_on)
+        rel_obs = json.get('related_objects', None)
+        if rel_obs:
+            for rel_ob in rel_obs:
+                obj_instance = RelatedObject()
+                obj_instance.populate(rel_ob)
+                self.related_objects.append(obj_instance)
 
-    attribtues = json.get('attributes', None)
-    if attribtues:
-      for attribtue in attribtues:
-        attribute = Attribute()
-        attribute.populate(attribtue)
-        self.attributes.append(attribute)
+        attribtues = json.get('attributes', None)
+        if attribtues:
+            for attribtue in attribtues:
+                attribute = Attribute()
+                attribute.populate(attribtue)
+                self.attributes.append(attribute)

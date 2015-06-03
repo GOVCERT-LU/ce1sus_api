@@ -26,35 +26,35 @@ class fakefloat(float):
 
 class RestBase(object):
 
-  def __init__(self):
-    self.identifier = None
+    def __init__(self):
+        self.identifier = None
 
-  @staticmethod
-  def convert_value(value):
-    # TODO: rethink the wrapped file foo
-    """converts the value None to '' else it will be send as None-Text"""
-    if value or value == 0:
-      if isinstance(value, datetime):
+    @staticmethod
+    def convert_value(value):
+        # TODO: rethink the wrapped file foo
+        """converts the value None to '' else it will be send as None-Text"""
+        if value or value == 0:
+            if isinstance(value, datetime):
         # return value.strftime('%m/%d/%Y %H:%M:%S %Z')
-        return value.isoformat()
-      if isinstance(value, date):
-        # return value.strftime('%Y-%m-%d')
-        return value.isoformat()
-      if isinstance(value, UUID):
-        return u'{0}'.format(value)
-      if isinstance(value, Decimal):
-        return fakefloat(value)
-      return value
-    else:
-      return ''
+                return value.isoformat()
+            if isinstance(value, date):
+                # return value.strftime('%Y-%m-%d')
+                return value.isoformat()
+            if isinstance(value, UUID):
+                return u'{0}'.format(value)
+            if isinstance(value, Decimal):
+                return fakefloat(value)
+            return value
+        else:
+            return ''
 
 
 class ExtendedLogingInformations(RestBase):
 
-  def __init__(self):
-    RestBase.__init__(self)
-    self.originating_group = None
-    self.creator_group = None
-    self.created_at = None
-    self.modified_on = None
-    self.modifier = None
+    def __init__(self):
+        RestBase.__init__(self)
+        self.originating_group = None
+        self.creator_group = None
+        self.created_at = None
+        self.modified_on = None
+        self.modifier = None
