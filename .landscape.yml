@@ -1,0 +1,6 @@
+pep8:
+  disable:
+    - E111
+pylint:
+  disable:
+    - eval-used
