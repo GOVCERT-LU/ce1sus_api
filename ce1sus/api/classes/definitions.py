@@ -48,11 +48,11 @@ class ObjectDefinition(RestBase):
               'chksum': self.convert_value(self.chksum),
               'default_share': self.convert_value(self.default_share),
               'attributes': attribtues,
-              'chksum': self.convert_value(self.chksum),
               }
     else:
       return {'identifier': self.identifier,
-              'name': self.name}
+              'name': self.name,
+              'chksum': self.convert_value(self.chksum)}
 
   def populate(self, json):
     self.identifier = json.get('identifier', None)

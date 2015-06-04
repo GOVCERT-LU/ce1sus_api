@@ -35,7 +35,7 @@ class RestBase(object):
     """converts the value None to '' else it will be send as None-Text"""
     if value or value == 0:
       if isinstance(value, datetime):
-    # return value.strftime('%m/%d/%Y %H:%M:%S %Z')
+        # return value.strftime('%m/%d/%Y %H:%M:%S %Z')
         return value.isoformat()
       if isinstance(value, date):
         # return value.strftime('%Y-%m-%d')
