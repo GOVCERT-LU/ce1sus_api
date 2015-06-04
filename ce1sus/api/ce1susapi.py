@@ -185,6 +185,14 @@ class Ce1susAPI(object):
                                 Group)
     return rest_group
 
+  def get_groups(self, complete=False, inflated=False):
+    url = '/group'
+    url = self.__set_complete_inflated(url, complete, inflated)
+    rest_group = self.__request(url,
+                                'GET',
+                                Group)
+    return rest_group
+
   def get_report_by_uuid(self, uuid, complete=False, inflated=False):
     url = '/report/{0}'.format(uuid)
     url = self.__set_complete_inflated(url, complete, inflated)

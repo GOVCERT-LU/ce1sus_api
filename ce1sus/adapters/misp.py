@@ -199,7 +199,7 @@ class MispConverter(object):
       rest_event.first_seen = datetime.utcnow()
     rest_event.tlp = event_header.get('tlp', 'amber')
     rest_event.risk = event_header.get('risk', 'None')
-    # event.uuid = event_header.get('uuid', None)
+    event.uuid = event_header.get('uuid', None)
 
     if rest_event.risk not in MispConverter.ce1sus_risk_level:
       rest_event.risk = 'None'
