@@ -289,8 +289,8 @@ class ObjectValidator(object):
         return False
 
       if minimal and maximal:
-        errorMsg += ('Smaller or equal than {0} and bigger or equal'
-                     + ' than {0}').format(minimal, maximal)
+        errorMsg += ('Smaller or equal than {0} and bigger or equal' +
+                     ' than {0}').format(minimal, maximal)
         result = minimal <= value <= maximal
       elif maximal:
         errorMsg += 'Bigger or equal than {0}'.format(maximal)

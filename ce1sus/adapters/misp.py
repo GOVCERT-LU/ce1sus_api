@@ -118,7 +118,15 @@ class MispConverter(object):
     return {'Accept': 'application/xml',
             'Authorization': self.api_key}
 
-  def __init__(self, api_url, api_key, ce1sus_attribute_definitions, ce1sus_object_definitions, reference_definitions, indicator_types, conditions, misp_tag='Generic MISP'):
+  def __init__(self,
+               api_url,
+               api_key,
+               ce1sus_attribute_definitions,
+               ce1sus_object_definitions,
+               reference_definitions,
+               indicator_types,
+               conditions,
+               misp_tag='Generic MISP'):
     self.api_url = api_url
     self.api_key = api_key
     self.api_headers = self.get_api_header_parameters()
@@ -492,7 +500,9 @@ class MispConverter(object):
       name = 'comment'
       value = u'{0}/{1} - {2}'.format(category, type, value)
     elif 'filename' in type_:
-      message = u'Category {0} Type {1} with value {2} not mapped for {3} as it appears to be bogous'.format(category, type_, value, self.__get_event_msg(event))
+      message = u'Category {0} Type {1} with value {2} not mapped for {3} as it appears to be bogous'.format(category, type_,
+                                                                                                             value,
+                                                                                                             self.__get_event_msg(event))
 
       self.syslogger.warning(message)
       return None
@@ -616,7 +626,7 @@ class MispConverter(object):
           return attribute_definition
     return None
 
-  def create_reference(self, id_, uuid, category, type_, value, data, comment, share, event, set_log=True):
+  def create_reference(self, id_, uuid, category, type_, value, data, share, event, set_log=True):
     reference = Reference()
     # TODO map reference
     reference.identifier = uuid
@@ -648,10 +658,14 @@ class MispConverter(object):
       return None
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
-    if (category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample', 'filename|sha1', 'filename|md5', 'filename|sha256'])) or (category == 'internal reference' and type_ in ['text', 'comment']) or type_ == 'other' or (category == 'attribution' and type_ == 'comment') or category == 'other' or (category == 'antivirus detection' and type_ == 'link'):
+    if ((category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and
+        (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample', 'filename|sha1', 'filename|md5', 'filename|sha256'])) or
+        (category == 'internal reference' and type_ in ['text', 'comment']) or
+        type_ == 'other' or (category == 'attribution' and type_ == 'comment') or
+        category == 'other' or (category == 'antivirus detection' and type_ == 'link')):
       # make a report
       # Create Report it will be just a single one
-      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, share, event)
+      reference = self.create_reference(id_, uuid, category, type_, value, data, share, event)
       if reference:
         if len(event.reports) == 0:
           report = Report()
@@ -667,7 +681,7 @@ class MispConverter(object):
 
         event.reports[0].references.append(reference)
     elif category == 'payload installation' and type_ == 'vulnerability':
-      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, share, event)
+      reference = self.create_reference(id_, uuid, category, type_, value, data, share, event)
       reference.value = u'Vulnerablility: {0}'.format(reference.value)
       if len(event.reports) == 0:
         report = Report()
@@ -683,7 +697,7 @@ class MispConverter(object):
 
       event.reports[0].references.append(reference)
     elif category == 'attribution':
-      reference = self.create_reference(id_, uuid, category, type_, value, data, comment, share, event)
+      reference = self.create_reference(id_, uuid, category, type_, value, data, share, event)
       reference.value = u'Attribution: {0}'.format(reference.value)
       if len(event.reports) == 0:
         report = Report()
@@ -956,10 +970,10 @@ class MispConverter(object):
         # self.set_extended_logging(report, rest_event)
         # IMPORTANT logging of this should not be set, as this should onbly be visible for the owner/inserter
         value = u'{0}{1} Event ID {2}'.format('', self.tag, event_id)
-        reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, None, False, rest_event, False)
+        reference = self.create_reference(None, uuid4(), None, 'reference_external_identifier', value, None, False, rest_event, False)
         report.references.append(reference)
         value = u'{0}/events/view/{1}'.format(self.api_url, event_id)
-        reference = self.create_reference(None, uuid4(), None, 'link', value, None, None, False, rest_event, False)
+        reference = self.create_reference(None, uuid4(), None, 'link', value, None, False, rest_event, False)
         report.references.append(reference)
 
         result.append(report)
