@@ -3,4 +3,4 @@ pep8:
     - E111
 pylint:
   disable:
-    - eval-used
+    - W0311
