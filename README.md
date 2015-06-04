@@ -3,6 +3,9 @@
 This project contains all the required functionalities to access the ce1sus RESTAPI via Python and also offers
 the program to import events from MISP (https://github.com/MISP/MISP) to ce1sus.
 
+#Build Status
+[![Code Health](https://landscape.io/github/nijel/stardicter/master/landscape.png)](https://landscape.io/github/GOVCERT-LU/ce1sus_api/master)
+
 # Requirements
 
 * python (2.7+)
