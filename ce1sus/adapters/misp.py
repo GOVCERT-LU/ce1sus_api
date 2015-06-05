@@ -413,7 +413,8 @@ class MispConverter(object):
       name = 'DomainName'
     elif type_ in ['email-src', 'email-attachment', 'email-subject', 'email-dst']:
       name = 'email'
-    elif category in ['network activity', 'payload delivery']:
+    elif category in ['network activity', 'payload delivery', 'payload installation', 'payload type']:
+
       if type_ in ['ip-dst', 'ip-src']:
         name = 'Address'
       elif type_ in ['url']:
@@ -440,9 +441,9 @@ class MispConverter(object):
       elif type_ == 'attachment':
         # TODO handle pcap files
         return None
+      elif category in ['payload type', 'payload installation', 'payload delivery']:
+        name = 'File'
 
-    elif category in ['payload type', 'payload installation']:
-      name = 'File'
     elif category in ['artifacts dropped']:
       if 'yara' in type_ or 'snort' in type_:
         name = 'IDSRule'
