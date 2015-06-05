@@ -256,7 +256,7 @@ class MispConverter(object):
         name = None
       if hive == 'HKLM' or 'HKEY_LOCAL_MACHINE' in hive:
         hive = 'HKEY_LOCAL_MACHINE'
-      elif hive == 'HKCU' or 'HKEY_CURRENT_USER' in hive or hive == 'HCKU':
+      elif hive in ['HKCU', 'HK_CURRENT_USER', 'HCKU'] or 'HKEY_CURRENT_USER' in hive:
         hive = 'HKEY_CURRENT_USER'
       elif hive in ['HKEY_CURRENTUSER', 'HKU']:
         hive = 'HKEY_CURRENT_USER'

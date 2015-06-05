@@ -184,8 +184,8 @@ class Event(ExtendedLogingInformations):
                 # TODO: add first and last seen
                 'reports': reports,
                 'reports_count': reports_count,
-                'first_seen': self.convert_value(None),
-                'last_seen': self.convert_value(None),
+                'first_seen': self.convert_value(self.first_seen),
+                'last_seen': self.convert_value(self.last_seen),
                 'observables': observables,
                 'observables_count': observables_count,
                 'comments': comments,
@@ -204,8 +204,8 @@ class Event(ExtendedLogingInformations):
                 'modified_on': self.convert_value(self.modified_on),
                 'originating_group': self.originating_group.to_dict(complete, False),
                 # TODO: add first and last seen
-                'first_seen': self.convert_value(None),
-                'last_seen': self.convert_value(None),
+                'first_seen': self.convert_value(self.first_seen),
+                'last_seen': self.convert_value(self.last_seen),
                 'observables': observables,
                 'observables_count': observables_count,
                 'reports': reports,
