@@ -43,7 +43,6 @@ class RelatedObject(RestBase):
     obj = json.get('object', None)
     if obj:
       self.object = Object()
-      print obj.get('identifier', None)
       self.object.populate(obj)
     self.relation = json.get('relation', None)
     self.parent_id = json.get('parent_id')

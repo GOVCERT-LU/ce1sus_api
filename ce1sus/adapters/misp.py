@@ -658,7 +658,7 @@ class MispConverter(object):
 
   def create_observable(self, id_, uuid, category, type_, value, data, comment, ioc, share, event):
     if ((category in ['external analysis', 'internal reference', 'targeting data', 'antivirus detection'] and
-        (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample', 'filename|sha1', 'filename|md5', 'filename|sha256'])) or
+        (type_ in ['attachment', 'comment', 'link', 'text', 'url', 'text', 'malware-sample', 'filename|sha1', 'filename|md5', 'filename|sha256', 'vulnerability'])) or
         (category == 'internal reference' and type_ in ['text', 'comment']) or
         type_ == 'other' or (category == 'attribution' and type_ == 'comment') or
         category == 'other' or (category == 'antivirus detection' and type_ == 'link')):
