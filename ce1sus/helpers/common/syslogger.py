@@ -51,13 +51,19 @@ class Syslogger(object):
 
   def info(self, message):
     if self.log_syslog and self.level >= 2:
-      syslog.syslog(syslog.LOG_INFO, u'[INFO] {0}'.format(message))
+      try:
+        syslog.syslog(syslog.LOG_INFO, u'[INFO] {0}'.format(message))
+      except TypeError:
+        print message
       if self.log_console:
         print u'[INFO] {0}'.format(message)
 
   def warning(self, message):
     if self.log_syslog and self.level >= 1:
-      syslog.syslog(syslog.LOG_WARNING, u'[WARNING] {0}'.format(message))
+      try:
+        syslog.syslog(syslog.LOG_WARNING, u'[WARNING] {0}'.format(message))
+      except TypeError:
+        print message
       if self.log_console:
         print u'[WARNING] {0}'.format(message)
 

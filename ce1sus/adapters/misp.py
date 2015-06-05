@@ -258,7 +258,7 @@ class MispConverter(object):
         hive = 'HKEY_LOCAL_MACHINE'
       elif hive == 'HKCU' or 'HKEY_CURRENT_USER' in hive or hive == 'HCKU':
         hive = 'HKEY_CURRENT_USER'
-      elif hive == 'HKEY_CURRENTUSER':
+      elif hive in ['HKEY_CURRENTUSER', 'HKU']:
         hive = 'HKEY_CURRENT_USER'
       elif hive in ['HKCR', 'HKEY_CLASSES_ROOT']:
         hive = 'HKEY_CLASSES_ROOT'
@@ -351,6 +351,7 @@ class MispConverter(object):
           raise MispMappingException(message)
         # TODO
         attr.value = base64.b64encode(data)
+
         self.set_properties(attr, share)
         self.set_extended_logging(attr, event)
         raw_artifact.attributes.append(attr)
@@ -459,6 +460,8 @@ class MispConverter(object):
     elif category in ['persistence mechanism']:
       if type_ in ['regkey', 'regkey|value']:
         name = 'WindowsRegistryKey'
+      elif type_ == 'filename':
+        name = 'File'
       else:
         raise MispMappingException('Type {0} not defined'.format(type_))
     elif category in ['targeting data']:
@@ -541,7 +544,8 @@ class MispConverter(object):
 
     if category == 'antivirus detection' and type_ == 'text':
       name = 'comment'
-
+    elif category == 'payload type' and type_ == 'text':
+      name = 'comment'
     elif type_ == 'pattern-in-file':
       name = 'pattern-in-file'
     elif type_ == 'pattern-in-traffic':
