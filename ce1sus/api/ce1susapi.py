@@ -263,7 +263,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Event,
-                                data=event.to_dict(complete, inflated))
+                                data=event.to_dict(True, True))
     return rest_event
 
   def insert_observable(self, observable, complete=False, inflated=False):
@@ -275,7 +275,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Observable,
-                                data=observable.to_dict(complete, inflated))
+                                data=observable.to_dict(True, True))
     return rest_event
 
   def insert_object(self, obj, complete=False, inflated=False):
@@ -286,7 +286,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Object,
-                                data=obj.to_dict(complete, inflated))
+                                data=obj.to_dict(True, True))
     return rest_event
 
   def insert_attribute(self, attribute, complete=False, inflated=False):
@@ -297,7 +297,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Object,
-                                data=attribute.to_dict(complete, inflated))
+                                data=attribute.to_dict(True, True))
     return rest_event
 
   def insert_reference(self, reference, complete=False, inflated=False):
@@ -308,7 +308,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Reference,
-                                data=reference.to_dict(complete, inflated))
+                                data=reference.to_dict(True, True))
     return rest_event
 
   def insert_report(self, report, complete=False, inflated=False):
@@ -320,7 +320,7 @@ class Ce1susAPI(object):
     rest_event = self.__request(url,
                                 'POST',
                                 Report,
-                                data=report.to_dict(complete, inflated))
+                                data=report.to_dict(True, True))
     return rest_event
 
   def login(self):

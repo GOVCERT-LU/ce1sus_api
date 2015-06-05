@@ -873,74 +873,50 @@ class MispConverter(object):
     if mal_email:
       observable = self.map_observable_composition(mal_email, event, 'Malicious E-mail', share)
       if observable:
-        indicator = self.map_indicator(observable, 'Malicious E-mail', event)
         result_observables.append(observable)
         del mal_email[:]
-        if indicator:
-          event.indicators.append(indicator)
 
     if artifacts:
       observable = self.map_observable_composition(artifacts, event, 'Malware Artifacts', share)
       if observable:
-        indicator = self.map_indicator(observable, 'Malware Artifacts', event)
         del artifacts[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if ips:
       observable = self.map_observable_composition(ips, event, 'IP Watchlist', share)
       if observable:
-        indicator = self.map_indicator(observable, 'IP Watchlist', event)
         del ips[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if file_hashes:
       observable = self.map_observable_composition(file_hashes, event, 'File Hash Watchlist', share)
       if observable:
-        indicator = self.map_indicator(observable, 'File Hash Watchlist', event)
         del file_hashes[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if domains:
       observable = self.map_observable_composition(domains, event, 'Domain Watchlist', share)
       if observable:
-        indicator = self.map_indicator(observable, 'Domain Watchlist', event)
         del domains[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if c2s:
       observable = self.map_observable_composition(c2s, event, 'C2', share)
       if observable:
-        indicator = self.map_indicator(observable, 'C2', event)
         del c2s[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if urls:
       observable = self.map_observable_composition(urls, event, 'URL Watchlist', share)
       if observable:
-        indicator = self.map_indicator(observable, 'URL Watchlist', event)
         del urls[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if others:
       observable = self.map_observable_composition(others, event, 'Others', share)
       if observable:
-        indicator = self.map_indicator(observable, None, event)
         del others[:]
         result_observables.append(observable)
-        if indicator:
-          event.indicators.append(indicator)
 
     if result_observables:
       return result_observables
@@ -1043,25 +1019,6 @@ class MispConverter(object):
       event_uuid = rest_event.identifier
       self.__dump_files(event_uuid, 'Event-{0}.xml'.format(event_id), xml_string)
     return rest_event
-
-  def map_indicator(self, observable, indicator_type, event):
-    indicator = Indicator()
-    indicator.identifier = uuid4()
-    self.set_extended_logging(indicator, event)
-
-    indicator.event = event
-    indicator.event_id = event.identifier
-
-    if indicator_type:
-      indicator.type_.append(self.get_indicator_type(indicator_type))
-
-    new_observable = clone_observable(observable)
-    if new_observable:
-      indicator.observables.append(new_observable)
-    else:
-      return None
-
-    return indicator
 
   def __parse_event_list(self, xml_sting):
     xml = et.fromstring(xml_sting)

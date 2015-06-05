@@ -49,6 +49,7 @@ class Event(ExtendedLogingInformations):
     self.published = None
     self.modified_on = None
     self.first_seen = None
+    self.last_seen = None
     self.observables = list()
     self.observables_count = None
     self.comments = list()
