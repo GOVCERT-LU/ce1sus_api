@@ -251,7 +251,9 @@ class Properties(BitBase):
             }
 
   def populate(self, json):
-    if json:
+    if isinstance(json, Properties):
+      self = json
+    elif json:
       validated = json.get('validated', False)
       self.is_validated = validated
 

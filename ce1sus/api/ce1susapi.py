@@ -460,3 +460,19 @@ class Ce1susAPI(object):
       return True
     else:
       return False
+
+  def get_all(self, page=1, count=10, complete=False):
+    url = "/events"
+    url = '{0}?count={1}&page={2}&sorting%5Bcreated_at%5D=desc'.format(url, count, page).replace('&amp;', 'BLA')
+    events_json = self.__request(url,
+                                 'GET',
+                                 None
+                                 )
+    events_json = json.loads(events_json)
+    events_json = events_json.get('data', list())
+    result = list()
+    for event_json in events_json:
+      event = Event()
+      event.populate(event_json)
+      result.append(event)
+    return result

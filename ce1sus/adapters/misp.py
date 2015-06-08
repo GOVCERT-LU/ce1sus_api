@@ -407,12 +407,17 @@ class MispConverter(object):
     name = None
     if category == 'Artifact':
       name = category
+
+    elif category == 'payload delivery' and type_ == 'link':
+      name = 'URI'
     elif type_ in ['filename|md5', 'filename|sha1', 'filename|sha256', 'md5', 'sha1', 'sha256'] or category in ['antivirus detection']:
       name = 'File'
     elif type_ in ['domain']:
       name = 'DomainName'
     elif type_ in ['email-src', 'email-attachment', 'email-subject', 'email-dst']:
       name = 'email'
+    elif category == 'external analysis' and type_ == 'filename':
+      name = 'File'
     elif category in ['network activity', 'payload delivery', 'payload installation', 'payload type']:
 
       if type_ in ['ip-dst', 'ip-src']:
@@ -449,6 +454,8 @@ class MispConverter(object):
         name = 'IDSRule'
       elif type_ == 'mutex':
         name = 'Mutex'
+      elif type_ == 'attachment':
+        return None
       elif 'pipe' in type_:
         name = 'Pipe'
       elif type_ in ['text', 'others']:
@@ -545,6 +552,8 @@ class MispConverter(object):
 
     if category == 'antivirus detection' and type_ == 'text':
       name = 'comment'
+    elif category == 'payload delivery' and type_ == 'link':
+      name = 'url'
     elif category == 'payload type' and type_ == 'text':
       name = 'comment'
     elif type_ == 'pattern-in-file':
