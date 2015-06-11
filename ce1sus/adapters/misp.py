@@ -143,9 +143,11 @@ class MispConverter(object):
     self.file_location = '/tmp'
     self.verbose = False
     self.seen_attr_ids = list()
+    self.seen_ref_ids = list()
 
   def set_event_header(self, event, rest_event, title_prefix='', json=None):
     self.seen_attr_ids = list()
+    self.seen_ref_ids = list()
     if event is not None:
       event_header = {}
       for h in MispConverter.header_tags:
@@ -313,6 +315,7 @@ class MispConverter(object):
         second_type = self.get_hash_type(second_value)
         self.append_attributes(obj, observable, id_, category, first_type, first_value, ioc, share, event, uuid)
         self.append_attributes(obj, observable, id_, category, second_type, second_value, ioc, share, event, uuid4())
+
       else:
         message = 'Composed attribute {0} splits into more than 2 elements for {1}'.format(type_, self.__get_event_msg(event))
         self.syslogger.error(message)
@@ -445,8 +448,14 @@ class MispConverter(object):
 
       elif type_ == 'attachment':
         # TODO handle pcap files
-        return None
+        if 'pcap' in value:
+          return None
+        else:
+          raise MispMappingException('cannot map')
+      elif type_ == 'malware-sample':
+        raise
       elif category in ['payload type', 'payload installation', 'payload delivery']:
+        # TODO review this
         name = 'File'
 
     elif category in ['artifacts dropped']:
@@ -553,7 +562,20 @@ class MispConverter(object):
     if category == 'antivirus detection' and type_ == 'text':
       name = 'comment'
     elif category == 'payload delivery' and type_ == 'link':
-      name = 'url'
+      if 'http:' in value.lower():
+        name = 'url'
+      elif 'hxxp:' in value.lower():
+        value = value.replace('hxxp', 'http')
+        value = value.replace('hXXp', 'http')
+        name = 'url'
+      else:
+        url_regex = re.compile(r'''^(?:([^:/?#]+)://)?([^:/?#]*)(?::(\d+))?([^?#]*)(\?[^#]*)?(#.*)?''', re.I)
+        if url_regex.match(value):
+          name = 'url'
+        else:
+          if not value.starts_with('/'):
+            attribute.condition = self.get_condition('FitsPattern')
+          name = 'urn'
     elif category == 'payload type' and type_ == 'text':
       name = 'comment'
     elif type_ == 'pattern-in-file':
@@ -588,15 +610,30 @@ class MispConverter(object):
       elif type_ in ['hostname']:
         name = 'Hostname_Value'
       elif type_ in ['url']:
-        name = 'url'
-        if type_ == 'url' and '://' not in value:
-          attribute.condition = self.get_condition('FitsPattern')
+        if 'http:' in value.lower():
+          name = 'url'
+        elif 'hxxp:' in value.lower():
+          value = value.replace('hxxp', 'http')
+          value = value.replace('hXXp', 'http')
+          name = 'url'
+        else:
+          url_regex = re.compile(r'''^(?:([^:/?#]+)://)?([^:/?#]*)(?::(\d+))?([^?#]*)(\?[^#]*)?(#.*)?''', re.I)
+          if url_regex.match(value):
+            name = 'url'
+          else:
+            if not value.starts_with('/'):
+              attribute.condition = self.get_condition('FitsPattern')
+            name = 'urn'
       elif type_ == 'http-method':
         name = 'HTTP_Method'
       elif type_ in ['vulnerability']:
         name = 'vulnerability_cve'
       elif type_ in ['user-agent']:
         name = 'User_Agent'
+      elif type_ == 'malware-sample':
+        name = 'Raw_Artifact'
+      else:
+        name = None
       # Add to the observable the comment destination as in this case only one address will be present in the observable
 
     # try auto assign
@@ -641,8 +678,13 @@ class MispConverter(object):
 
   def create_reference(self, id_, uuid, category, type_, value, data, share, event, set_log=True):
     reference = Reference()
-    # TODO map reference
-    reference.identifier = uuid
+    # workaround for https://github.com/MISP/MISP/issues/452
+    if uuid not in self.seen_ref_ids:
+      reference.identifier = uuid
+      self.seen_ref_ids.append(uuid)
+    else:
+      reference.identifier = uuid4()
+
     reference.definition = self.get_reference_definition(category, type_, value, event)
     if reference.definition:
       reference.definition_id = reference.definition.identifier
@@ -660,6 +702,10 @@ class MispConverter(object):
           message = u'Downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
           self.syslogger.info(message)
           reference.value = ReferenceFile(filename, base64.b64encode(data))
+        else:
+          message = u'Failed to downloaded file "{0}" id:{1} from {2}'.format(filename, id_, self.__get_event_msg(event))
+          self.syslogger.warning(message)
+          return None
       else:
         reference.value = value
       self.set_properties(reference, share)
@@ -695,36 +741,38 @@ class MispConverter(object):
         event.reports[0].references.append(reference)
     elif category == 'payload installation' and type_ == 'vulnerability':
       reference = self.create_reference(id_, uuid, category, type_, value, data, share, event)
-      reference.value = u'Vulnerablility: {0}'.format(reference.value)
-      if len(event.reports) == 0:
-        report = Report()
-        report.identifier = uuid4()
-        self.set_properties(report, True)
-        self.set_extended_logging(report, event)
-        event.reports.append(report)
-      if comment:
-        if event.reports[0].description:
-          event.reports[0].description = event.reports[0].description + ' - ' + comment
-        else:
-          event.reports[0].description = comment
+      if reference:
+        reference.value = u'Vulnerablility: {0}'.format(reference.value)
+        if len(event.reports) == 0:
+          report = Report()
+          report.identifier = uuid4()
+          self.set_properties(report, True)
+          self.set_extended_logging(report, event)
+          event.reports.append(report)
+        if comment:
+          if event.reports[0].description:
+            event.reports[0].description = event.reports[0].description + ' - ' + comment
+          else:
+            event.reports[0].description = comment
 
-      event.reports[0].references.append(reference)
+        event.reports[0].references.append(reference)
     elif category == 'attribution':
       reference = self.create_reference(id_, uuid, category, type_, value, data, share, event)
-      reference.value = u'Attribution: {0}'.format(reference.value)
-      if len(event.reports) == 0:
-        report = Report()
-        report.identifier = uuid4()
-        self.set_properties(report, True)
-        self.set_extended_logging(report, event)
-        event.reports.append(report)
-      if comment:
-        if event.reports[0].description:
-          event.reports[0].description = event.reports[0].description + ' - ' + comment
-        else:
-          event.reports[0].description = comment
+      if reference:
+        reference.value = u'Attribution: {0}'.format(reference.value)
+        if len(event.reports) == 0:
+          report = Report()
+          report.identifier = uuid4()
+          self.set_properties(report, True)
+          self.set_extended_logging(report, event)
+          event.reports.append(report)
+        if comment:
+          if event.reports[0].description:
+            event.reports[0].description = event.reports[0].description + ' - ' + comment
+          else:
+            event.reports[0].description = comment
 
-      event.reports[0].references.append(reference)
+        event.reports[0].references.append(reference)
 
     else:
       observable = self.make_observable(event, comment, share)
