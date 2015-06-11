@@ -374,7 +374,9 @@ class MispConverter(object):
         attribute.identifier = uuid
         self.seen_attr_ids.append(uuid)
       else:
-        attribute.identifier = uuid4()
+        uuid = '{0}'.format(uuid4())
+        self.seen_attr_ids.append(uuid)
+        attribute.identifier = uuid
 
       self.set_properties(attribute, share)
       self.set_extended_logging(attribute, event)
@@ -683,6 +685,8 @@ class MispConverter(object):
       reference.identifier = uuid
       self.seen_ref_ids.append(uuid)
     else:
+      uuid = '{0}'.format(uuid4())
+      self.seen_ref_ids.append(uuid)
       reference.identifier = uuid4()
 
     reference.definition = self.get_reference_definition(category, type_, value, event)
