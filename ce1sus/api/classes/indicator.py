@@ -7,6 +7,9 @@ Created on Nov 11, 2014
 """
 from ce1sus.api.classes.base import RestBase, ExtendedLogingInformations
 from ce1sus.api.classes.common import Properties
+from ce1sus.api.classes.group import Group
+from ce1sus.api.classes.observables import Observable
+from ce1sus.helpers.common import strings
 
 
 __author__ = 'Weber Jean-Paul'
@@ -113,3 +116,41 @@ class Indicator(ExtendedLogingInformations):
               'modifier_group': self.modifier.to_dict(False, False),
               'properties': self.properties.to_dict()
               }
+
+  def populate(self, json):
+    self.identifier = json.get('identifier', None)
+
+    self.title = json.get('title', None)
+    self.description = json.get('description', None)
+    self.short_description = json.get('short_description', None)
+    self.confidence = json.get('confidence', None)
+    modifier_group = json.get('modifier_group', None)
+    if modifier_group:
+      cg_instance = Group()
+      cg_instance.populate(modifier_group)
+      self.modifier = cg_instance
+    originating_group = json.get('originating_group', None)
+    if originating_group:
+      cg_instance = Group()
+      cg_instance.populate(originating_group)
+      self.originating_group = cg_instance
+    creator_group = json.get('creator_group', None)
+    if creator_group:
+      cg_instance = Group()
+      cg_instance.populate(creator_group)
+      self.creator_group = cg_instance
+    created_at = json.get('created_at', None)
+    if created_at:
+      self.created_at = strings.stringToDateTime(created_at)
+    modified_on = json.get('modified_on', None)
+    if modified_on:
+      self.modified_on = strings.stringToDateTime(modified_on)
+    self.operator = json.get('operator', 'OR')
+
+    self.properties.populate(json.get('properties', Properties('0')))
+    observables = json.get('observables', list())
+    if observables:
+      for observable in observables:
+        obs = Observable()
+        obs.populate(observable)
+        self.observables.append(obs)

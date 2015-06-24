@@ -8,6 +8,7 @@ Created on Oct 16, 2014
 from ce1sus.api.classes.base import ExtendedLogingInformations
 from ce1sus.api.classes.common import Properties, Status, Risk, Analysis, TLP
 from ce1sus.api.classes.group import EventPermissions, Group
+from ce1sus.api.classes.indicator import Indicator
 from ce1sus.api.classes.observables import Observable
 from ce1sus.api.classes.report import Report
 from ce1sus.helpers.common import strings
@@ -247,6 +248,12 @@ class Event(ExtendedLogingInformations):
         obs = Observable()
         obs.populate(observable)
         self.observables.append(obs)
+    indicators = json.get('indicators', list())
+    if indicators:
+      for indicator in indicators:
+        ind = Indicator()
+        ind.populate(indicator)
+        self.indicators.append(ind)
     modifier_group = json.get('modifier_group', None)
     if modifier_group:
       cg_instance = Group()
